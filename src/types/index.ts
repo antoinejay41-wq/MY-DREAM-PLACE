@@ -60,14 +60,16 @@ export interface Property {
   priceUnit?: 'total' | 'per_month' | 'per_night' | 'per_day' | 'per_sqm';
   rentalDuration?: RentalDuration;
   location: {
+    country: string;
+    province?: string;
     city: string;
     neighborhood: string;
-    country: string;
     address: string;
-    coordinates: {
+    coordinates?: {
       lat: number;
       lng: number;
-    };
+    } | null;
+    locationAccuracy?: 'approximate' | 'exact';
   };
   specs: {
     bedrooms?: number;

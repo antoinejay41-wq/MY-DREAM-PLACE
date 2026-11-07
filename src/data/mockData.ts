@@ -232,11 +232,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 2450000,
     priceUnit: 'total',
     location: {
+      country: 'Dominican Republic',
+      province: 'La Altagracia',
       city: 'Cap Cana',
       neighborhood: 'Farallón Cliffside',
-      country: 'Dominican Republic',
-      address: '14 Boulevard Farallón, Cap Cana',
-      coordinates: { lat: 18.4589, lng: -68.4045 }
+      address: 'Boulevard Farallón Sector, Cap Cana',
+      coordinates: { lat: 18.5000, lng: -68.3895 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       bedrooms: 5,
@@ -294,11 +296,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 1680000,
     priceUnit: 'total',
     location: {
+      country: 'Haiti',
+      province: 'Ouest',
       city: 'Pétion-Ville',
       neighborhood: 'Montagne Noire',
-      country: 'Haiti',
       address: '28 Impasse des Flamboyants, Montagne Noire',
-      coordinates: { lat: 18.5021, lng: -72.2756 }
+      coordinates: { lat: 18.5021, lng: -72.2756 },
+      locationAccuracy: 'exact'
     },
     specs: {
       bedrooms: 4,
@@ -357,11 +361,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUnit: 'per_month',
     rentalDuration: 'long_term',
     location: {
+      country: 'Dominican Republic',
+      province: 'Samaná',
       city: 'Las Terrenas',
       neighborhood: 'Playa Bonita',
-      country: 'Dominican Republic',
       address: '7 Paseo de la Costa, Playa Bonita',
-      coordinates: { lat: 19.3142, lng: -69.5618 }
+      coordinates: { lat: 19.3142, lng: -69.5618 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       bedrooms: 4,
@@ -418,11 +424,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 3200000,
     priceUnit: 'total',
     location: {
+      country: 'United States',
+      province: 'Florida',
       city: 'Miami Beach',
       neighborhood: 'Venetian Islands',
-      country: 'United States',
       address: '412 San Marino Drive, Miami Beach, FL',
-      coordinates: { lat: 25.7907, lng: -80.1628 }
+      coordinates: { lat: 25.7907, lng: -80.1628 },
+      locationAccuracy: 'exact'
     },
     specs: {
       bedrooms: 6,
@@ -476,11 +484,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 940000,
     priceUnit: 'total',
     location: {
-      city: 'Santo Domingo',
-      neighborhood: 'Piantini / Anacaona',
       country: 'Dominican Republic',
+      province: 'Distrito Nacional',
+      city: 'Santo Domingo',
+      neighborhood: 'Piantini / Mirador Sur',
       address: 'Torre Mirador Azul, PH-A, Av. Anacaona',
-      coordinates: { lat: 18.4512, lng: -69.9541 }
+      coordinates: { lat: 18.4512, lng: -69.9541 },
+      locationAccuracy: 'exact'
     },
     specs: {
       bedrooms: 3,
@@ -531,11 +541,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 425000,
     priceUnit: 'total',
     location: {
+      country: 'Haiti',
+      province: 'Nord',
       city: 'Cap-Haïtien',
       neighborhood: 'Carénage Waterfront',
-      country: 'Haiti',
       address: '19 Boulevard du Carénage, Cap-Haïtien',
-      coordinates: { lat: 19.7667, lng: -72.1981 }
+      coordinates: { lat: 19.7667, lng: -72.1981 },
+      locationAccuracy: 'exact'
     },
     specs: {
       bedrooms: 3,
@@ -584,11 +596,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 1890000,
     priceUnit: 'total',
     location: {
+      country: 'Dominican Republic',
+      province: 'Distrito Nacional',
       city: 'Santo Domingo',
       neighborhood: 'Naco / Churchill Corridor',
-      country: 'Dominican Republic',
       address: '108 Avenida Winston Churchill, Santo Domingo',
-      coordinates: { lat: 18.4725, lng: -69.9398 }
+      coordinates: { lat: 18.4725, lng: -69.9398 },
+      locationAccuracy: 'exact'
     },
     specs: {
       bathrooms: 6,
@@ -638,11 +652,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUnit: 'per_night',
     rentalDuration: 'short_term',
     location: {
+      country: 'Haiti',
+      province: 'Nord',
       city: 'Cap-Haïtien',
       neighborhood: 'Labadee Coastal Road',
-      country: 'Haiti',
       address: 'Route de Labadie KM 4, Cap-Haïtien',
-      coordinates: { lat: 19.7845, lng: -72.2412 }
+      coordinates: { lat: 19.7845, lng: -72.2412 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       bedrooms: 4,
@@ -693,11 +709,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUnit: 'per_month',
     rentalDuration: 'long_term',
     location: {
-      city: 'Pétion-Ville',
-      neighborhood: 'Bourdon / Musseau',
       country: 'Haiti',
-      address: '12 Rue Mercier, Musseau, Pétion-Ville',
-      coordinates: { lat: 18.5289, lng: -72.2945 }
+      province: 'Ouest',
+      city: 'Port-au-Prince',
+      neighborhood: 'Bourdon / Musseau',
+      address: '12 Rue Mercier, Bourdon, Port-au-Prince',
+      coordinates: { lat: 18.5392, lng: -72.3364 },
+      locationAccuracy: 'exact'
     },
     specs: {
       bedrooms: 3,
@@ -747,11 +765,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUnit: 'per_month',
     rentalDuration: 'monthly',
     location: {
-      city: 'Punta Cana',
-      neighborhood: 'Marina Cap Cana',
       country: 'Dominican Republic',
-      address: 'Paseo de la Marina, Edificio Sotavento 402',
-      coordinates: { lat: 18.5082, lng: -68.3741 }
+      province: 'La Altagracia',
+      city: 'Punta Cana',
+      neighborhood: 'Punta Cana Village & Marina',
+      address: 'Paseo de la Marina, Edificio Sotavento 402, Punta Cana',
+      coordinates: { lat: 18.5601, lng: -68.3725 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       bedrooms: 2,
@@ -800,11 +820,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 1150000,
     priceUnit: 'total',
     location: {
+      country: 'Dominican Republic',
+      province: 'Samaná',
       city: 'Las Terrenas',
       neighborhood: 'Punta Bonita',
-      country: 'Dominican Republic',
       address: 'Parcela 18-B, Sector Punta Bonita, Samaná',
-      coordinates: { lat: 19.3189, lng: -69.5702 }
+      coordinates: { lat: 19.3189, lng: -69.5702 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       areaSqm: 4500,
@@ -853,11 +875,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 340000,
     priceUnit: 'total',
     location: {
+      country: 'Haiti',
+      province: 'Ouest',
       city: 'Kenscoff',
       neighborhood: 'Belvédère Fermathe',
-      country: 'Haiti',
       address: 'Route de Kenscoff, Belvédère Fermathe 58',
-      coordinates: { lat: 18.4612, lng: -72.2839 }
+      coordinates: { lat: 18.4612, lng: -72.2839 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       areaSqm: 3200,
@@ -905,11 +929,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 690000,
     priceUnit: 'total',
     location: {
+      country: 'Haiti',
+      province: 'Nord',
       city: 'Cap-Haïtien',
       neighborhood: 'Boulevard de l’Aéroport',
-      country: 'Haiti',
       address: 'Boulevard Hugo Chávez, Zone Aéroportuaire, Cap-Haïtien',
-      coordinates: { lat: 19.7382, lng: -72.1945 }
+      coordinates: { lat: 19.7382, lng: -72.1945 },
+      locationAccuracy: 'exact'
     },
     specs: {
       areaSqm: 6000,
@@ -956,11 +982,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 4800,
     priceUnit: 'per_day',
     location: {
+      country: 'Haiti',
+      province: 'Ouest',
       city: 'Pétion-Ville',
       neighborhood: 'Laboule 12',
-      country: 'Haiti',
       address: '45 Route de Laboule, Pétion-Ville',
-      coordinates: { lat: 18.4892, lng: -72.3012 }
+      coordinates: { lat: 18.4892, lng: -72.3012 },
+      locationAccuracy: 'exact'
     },
     specs: {
       areaSqm: 1400,
@@ -1019,11 +1047,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 3600,
     priceUnit: 'per_day',
     location: {
+      country: 'Dominican Republic',
+      province: 'La Romana',
       city: 'La Romana',
       neighborhood: 'Bahía de Chavón',
-      country: 'Dominican Republic',
       address: '9 Paseo del Mar, La Romana',
-      coordinates: { lat: 18.4156, lng: -68.8892 }
+      coordinates: { lat: 18.4156, lng: -68.8892 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       areaSqm: 980,
@@ -1076,11 +1106,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 2950,
     priceUnit: 'per_day',
     location: {
+      country: 'Dominican Republic',
+      province: 'Distrito Nacional',
       city: 'Santo Domingo',
       neighborhood: 'Piantini Financial District',
-      country: 'Dominican Republic',
       address: 'Torre Corporativa Azul, Piso 18, Av. Abraham Lincoln',
-      coordinates: { lat: 18.4689, lng: -69.9312 }
+      coordinates: { lat: 18.4689, lng: -69.9312 },
+      locationAccuracy: 'exact'
     },
     specs: {
       areaSqm: 820,
@@ -1133,11 +1165,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 780000,
     priceUnit: 'total',
     location: {
+      country: 'Haiti',
+      province: 'Sud-Est',
       city: 'Jacmel',
       neighborhood: 'Baie de Cyvadier',
-      country: 'Haiti',
       address: '8 Route de Cyvadier, Jacmel',
-      coordinates: { lat: 18.2291, lng: -72.5012 }
+      coordinates: { lat: 18.2291, lng: -72.5012 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       bedrooms: 4,
@@ -1187,11 +1221,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 3850000,
     priceUnit: 'total',
     location: {
+      country: 'Dominican Republic',
+      province: 'La Romana',
       city: 'La Romana',
       neighborhood: 'Casa de Campo',
-      country: 'Dominican Republic',
       address: 'Los Lagos 24, Casa de Campo',
-      coordinates: { lat: 18.4091, lng: -68.9112 }
+      coordinates: { lat: 18.4091, lng: -68.9112 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       bedrooms: 6,
@@ -1241,11 +1277,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 1490000,
     priceUnit: 'total',
     location: {
+      country: 'Dominican Republic',
+      province: 'Samaná',
       city: 'Samaná',
       neighborhood: 'Loma de Las Galeras',
-      country: 'Dominican Republic',
       address: 'Camino Real 11, Las Galeras, Samaná',
-      coordinates: { lat: 19.2891, lng: -69.2014 }
+      coordinates: { lat: 19.2891, lng: -69.2014 },
+      locationAccuracy: 'approximate'
     },
     specs: {
       bedrooms: 4,
@@ -1287,11 +1325,13 @@ export const INITIAL_PROPERTIES: Property[] = [
     priceUSD: 2200,
     priceUnit: 'per_day',
     location: {
+      country: 'Haiti',
+      province: 'Ouest',
       city: 'Pétion-Ville',
       neighborhood: 'Juvénat',
-      country: 'Haiti',
       address: '7 Rue Rigaud Prolongée, Juvénat, Pétion-Ville',
-      coordinates: { lat: 18.5162, lng: -72.2998 }
+      coordinates: { lat: 18.5162, lng: -72.2998 },
+      locationAccuracy: 'exact'
     },
     specs: {
       areaSqm: 540,

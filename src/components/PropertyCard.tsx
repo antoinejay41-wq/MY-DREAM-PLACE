@@ -1,10 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Heart, Layers, MapPin } from 'lucide-react';
+import { ArrowUpRight, ExternalLink, Heart, Layers, MapPin } from 'lucide-react';
 import { Property } from '../types';
 import { useMarketplace } from '../contexts/MarketplaceContext';
 import { translatePropertyText } from '../translations';
 import { PropertyImage } from './PropertyImage';
+import {
+  buildGoogleMapsLocationUrl,
+  formatPropertyLocationLine
+} from '../utils/locationUtils';
 
 interface PropertyCardProps {
   property: Property;
@@ -39,6 +43,9 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, layout = '
       : property.rentalDuration === 'monthly'
       ? t.search.monthly
       : undefined;
+
+  const googleMapsUrl = buildGoogleMapsLocationUrl(property.location);
+  const fullLocationText = formatPropertyLocationLine(property.location);
 
   if (layout === 'list') {
     return (
@@ -100,13 +107,21 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, layout = '
               {localized.title}
             </Link>
 
-            <p className="mt-1 flex items-center gap-1.5 font-body text-xs text-[#737373]">
-              <MapPin className="w-3.5 h-3.5 text-[#1150EF] shrink-0" />
-              <span className="truncate">
-                {property.location.neighborhood}, {property.location.city} ·{' '}
-                {property.location.country}
+            <div className="mt-1 flex flex-wrap items-center gap-2 font-body text-xs text-[#737373]">
+              <span className="inline-flex items-center gap-1.5 min-w-0">
+                <MapPin className="w-3.5 h-3.5 text-[#1150EF] shrink-0" />
+                <span className="truncate">{fullLocationText}</span>
               </span>
-            </p>
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-ui text-[11px] font-semibold text-[#1150EF] hover:underline shrink-0"
+              >
+                <span>View Location</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
 
             <p className="mt-3 font-body text-sm text-[#161616]/80 line-clamp-2">
               {localized.description}
@@ -237,12 +252,26 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({ property, layout = '
             {localized.title}
           </Link>
 
-          <p className="mt-1 flex items-center gap-1 text-xs font-body text-[#737373] truncate">
-            <MapPin className="w-3.5 h-3.5 text-[#1150EF] shrink-0" />
-            <span className="truncate">
-              {property.location.neighborhood}, {property.location.city}
+          <div className="mt-1 flex items-center justify-between gap-2 text-xs font-body text-[#737373]">
+            <span className="inline-flex items-center gap-1 min-w-0 truncate">
+              <MapPin className="w-3.5 h-3.5 text-[#1150EF] shrink-0" />
+              <span className="truncate">
+                {property.location.neighborhood}, {property.location.city}
+                {property.location.province ? `, ${property.location.province}` : ''} ·{' '}
+                {property.location.country}
+              </span>
             </span>
-          </p>
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open location in Google Maps"
+              className="inline-flex items-center gap-0.5 font-ui text-[11px] font-semibold text-[#1150EF] hover:underline shrink-0"
+            >
+              <span>View Location</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
 
           {/* Specs Line */}
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-ui text-[#161616]/85 tabular-nums">

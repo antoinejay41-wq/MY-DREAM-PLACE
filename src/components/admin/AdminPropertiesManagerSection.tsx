@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   CheckCircle2,
   Edit3,
+  ExternalLink,
   Eye,
   EyeOff,
+  MapPin,
   Plus,
   Search,
   Star,
@@ -24,6 +27,13 @@ import {
   PropertyCategory
 } from '../../types';
 import { PropertyImage } from '../PropertyImage';
+import { InteractiveMapDemo } from '../InteractiveMapDemo';
+import {
+  VERIFIED_CITY_REFERENCES,
+  buildGoogleMapsLocationUrl,
+  findCityReference,
+  validatePropertyLocation
+} from '../../utils/locationUtils';
 
 interface AdminPropertiesManagerSectionProps {
   mode: 'all' | 'pending' | 'featured';
@@ -48,22 +58,27 @@ export const AdminPropertiesManagerSection: React.FC<
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [locationHealthFilter, setLocationHealthFilter] = useState<'all' | 'verified' | 'flagged'>('all');
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
 
-  // Form state for Create / Edit modal
+  // Form state for Create / Edit modal (including Task 4 Admin Location Editor)
   const [formTitle, setFormTitle] = useState('');
   const [formSubtitle, setFormSubtitle] = useState('');
   const [formCategory, setFormCategory] = useState<PropertyCategory>('villa');
   const [formListingType, setFormListingType] = useState<ListingType>('sale');
   const [formPriceUSD, setFormPriceUSD] = useState(850000);
   const [formPriceUnit, setFormPriceUnit] = useState<Property['priceUnit']>('total');
+  const [formCountry, setFormCountry] = useState('Dominican Republic');
+  const [formProvince, setFormProvince] = useState('La Altagracia');
   const [formCity, setFormCity] = useState('Cap Cana');
   const [formNeighborhood, setFormNeighborhood] = useState('Ocean Boulevard');
-  const [formCountry, setFormCountry] = useState('Dominican Republic');
   const [formAddress, setFormAddress] = useState('12 Coastal Drive');
+  const [formLatInput, setFormLatInput] = useState<string>('18.5000');
+  const [formLngInput, setFormLngInput] = useState<string>('-68.3895');
+  const [formLocationAccuracy, setFormLocationAccuracy] = useState<'approximate' | 'exact'>('approximate');
   const [formBedrooms, setFormBedrooms] = useState(4);
   const [formBathrooms, setFormBathrooms] = useState(4);
   const [formAreaSqm, setFormAreaSqm] = useState(420);
@@ -80,6 +95,97 @@ export const AdminPropertiesManagerSection: React.FC<
   );
   const [formImages, setFormImages] = useState<string[]>([SCENEAI_IMAGES.latest1]);
 
+  // Parse coordinates from Admin Location Editor inputs
+  const parsedModalCoordinates = useMemo(() => {
+    const latStr = formLatInput.trim();
+    const lngStr = formLngInput.trim();
+    if (!latStr || !lngStr) return null;
+    const lat = Number(latStr);
+    const lng = Number(lngStr);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+  }, [formLatInput, formLngInput]);
+
+  const draftModalLocation: Property['location'] = useMemo(
+    () => ({
+      country: formCountry.trim(),
+      province: formProvince.trim() || undefined,
+      city: formCity.trim(),
+      neighborhood: formNeighborhood.trim(),
+      address: formAddress.trim(),
+      coordinates: parsedModalCoordinates,
+      locationAccuracy: formLocationAccuracy
+    }),
+    [
+      formCountry,
+      formProvince,
+      formCity,
+      formNeighborhood,
+      formAddress,
+      parsedModalCoordinates,
+      formLocationAccuracy
+    ]
+  );
+
+  const modalLocationValidation = useMemo(
+    () => validatePropertyLocation(draftModalLocation),
+    [draftModalLocation]
+  );
+
+  const modalPreviewProperty: Property = useMemo(
+    () => ({
+      id: editingProperty?.id || 'admin-preview-prop',
+      referenceCode: editingProperty?.referenceCode || 'MDP-PREVIEW',
+      title: formTitle.trim() || 'Preview Property Listing',
+      subtitle: formSubtitle.trim() || undefined,
+      category: formCategory,
+      listingType: formListingType,
+      priceUSD: Number(formPriceUSD) || 0,
+      priceUnit: formPriceUnit,
+      location: draftModalLocation,
+      specs: {
+        bedrooms: formBedrooms || undefined,
+        bathrooms: formBathrooms || undefined,
+        areaSqm: Number(formAreaSqm) || 200,
+        guestCapacity: formGuestCapacity || undefined
+      },
+      description: formDescription.trim(),
+      highlights: [],
+      amenities: formAmenities
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+      images: formImages.length > 0 ? formImages : [SCENEAI_IMAGES.latest1],
+      ownerId: formOwnerId,
+      approvalStatus: editingProperty?.approvalStatus || 'approved',
+      availabilityStatus: formAvailability,
+      featured: formFeatured,
+      dateListed: editingProperty?.dateListed || new Date().toISOString().split('T')[0],
+      viewsCount: editingProperty?.viewsCount || 1,
+      inquiriesCount: editingProperty?.inquiriesCount || 0
+    }),
+    [
+      editingProperty,
+      formTitle,
+      formSubtitle,
+      formCategory,
+      formListingType,
+      formPriceUSD,
+      formPriceUnit,
+      draftModalLocation,
+      formBedrooms,
+      formBathrooms,
+      formAreaSqm,
+      formGuestCapacity,
+      formDescription,
+      formAmenities,
+      formImages,
+      formOwnerId,
+      formAvailability,
+      formFeatured
+    ]
+  );
+
   const openEditModal = (prop: Property) => {
     setEditingProperty(prop);
     setIsCreating(false);
@@ -89,10 +195,25 @@ export const AdminPropertiesManagerSection: React.FC<
     setFormListingType(prop.listingType);
     setFormPriceUSD(prop.priceUSD);
     setFormPriceUnit(prop.priceUnit || 'total');
+    setFormCountry(prop.location.country);
+    setFormProvince(prop.location.province || '');
     setFormCity(prop.location.city);
     setFormNeighborhood(prop.location.neighborhood);
-    setFormCountry(prop.location.country);
     setFormAddress(prop.location.address);
+    setFormLatInput(
+      prop.location.coordinates && Number.isFinite(prop.location.coordinates.lat)
+        ? String(prop.location.coordinates.lat)
+        : ''
+    );
+    setFormLngInput(
+      prop.location.coordinates && Number.isFinite(prop.location.coordinates.lng)
+        ? String(prop.location.coordinates.lng)
+        : ''
+    );
+    setFormLocationAccuracy(
+      prop.location.locationAccuracy ||
+        (prop.location.city.toLowerCase() === 'cap cana' ? 'approximate' : 'exact')
+    );
     setFormBedrooms(prop.specs.bedrooms ?? 0);
     setFormBathrooms(prop.specs.bathrooms ?? 0);
     setFormAreaSqm(prop.specs.areaSqm);
@@ -114,10 +235,14 @@ export const AdminPropertiesManagerSection: React.FC<
     setFormListingType('sale');
     setFormPriceUSD(1250000);
     setFormPriceUnit('total');
+    setFormCountry('Dominican Republic');
+    setFormProvince('La Altagracia');
     setFormCity('Cap Cana');
     setFormNeighborhood('Farallón Ridge');
-    setFormCountry('Dominican Republic');
-    setFormAddress('100 Ocean Crest');
+    setFormAddress('Cap Cana Resort Sector');
+    setFormLatInput('18.5000');
+    setFormLngInput('-68.3895');
+    setFormLocationAccuracy('approximate');
     setFormBedrooms(4);
     setFormBathrooms(5);
     setFormAreaSqm(520);
@@ -130,6 +255,17 @@ export const AdminPropertiesManagerSection: React.FC<
       'Newly curated architectural estate featuring floor-to-ceiling glazing and bespoke stonework.'
     );
     setFormImages([SCENEAI_IMAGES.latest1, SCENEAI_IMAGES.latest2]);
+  };
+
+  const handleApplyCityReference = (presetCity: string, presetCountry: string) => {
+    const ref = findCityReference(presetCity, presetCountry);
+    if (!ref) return;
+    setFormCity(ref.city);
+    setFormProvince(ref.province);
+    setFormCountry(ref.country);
+    setFormLatInput(ref.lat.toFixed(4));
+    setFormLngInput(ref.lng.toFixed(4));
+    setFormLocationAccuracy(ref.defaultAccuracy);
   };
 
   const handleSavePropertyModal = (e: React.FormEvent) => {
@@ -150,13 +286,7 @@ export const AdminPropertiesManagerSection: React.FC<
           listingType: formListingType,
           priceUSD: Number(formPriceUSD) || 0,
           priceUnit: formPriceUnit,
-          location: {
-            city: formCity.trim(),
-            neighborhood: formNeighborhood.trim(),
-            country: formCountry.trim(),
-            address: formAddress.trim(),
-            coordinates: { lat: 18.5, lng: -68.4 }
-          },
+          location: draftModalLocation,
           specs: {
             bedrooms: formBedrooms || undefined,
             bathrooms: formBathrooms || undefined,
@@ -183,13 +313,7 @@ export const AdminPropertiesManagerSection: React.FC<
         listingType: formListingType,
         priceUSD: Number(formPriceUSD) || 0,
         priceUnit: formPriceUnit,
-        location: {
-          ...editingProperty.location,
-          city: formCity.trim(),
-          neighborhood: formNeighborhood.trim(),
-          country: formCountry.trim(),
-          address: formAddress.trim()
-        },
+        location: draftModalLocation,
         specs: {
           ...editingProperty.specs,
           bedrooms: formBedrooms || undefined,
@@ -227,16 +351,28 @@ export const AdminPropertiesManagerSection: React.FC<
     return true;
   });
 
+  const flaggedLocationsCount = useMemo(
+    () => baseList.filter((p) => validatePropertyLocation(p.location).needsAdminReview).length,
+    [baseList]
+  );
+
   const filteredProperties = baseList
     .filter((p) => {
       if (categoryFilter !== 'all' && p.category !== categoryFilter) return false;
       if (statusFilter !== 'all' && p.approvalStatus !== statusFilter) return false;
+      if (locationHealthFilter !== 'all') {
+        const validation = validatePropertyLocation(p.location);
+        if (locationHealthFilter === 'flagged' && !validation.needsAdminReview) return false;
+        if (locationHealthFilter === 'verified' && !validation.isValid) return false;
+      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         return (
           p.title.toLowerCase().includes(q) ||
           p.referenceCode.toLowerCase().includes(q) ||
-          p.location.city.toLowerCase().includes(q)
+          p.location.city.toLowerCase().includes(q) ||
+          p.location.country.toLowerCase().includes(q) ||
+          (p.location.province || '').toLowerCase().includes(q)
         );
       }
       return true;
@@ -268,7 +404,7 @@ export const AdminPropertiesManagerSection: React.FC<
               ? 'Moderation & Quality Control'
               : mode === 'featured'
                 ? 'Homepage Spotlight Curation'
-                : 'Complete Property Inventory'}
+                : 'Complete Property Inventory & Location Editor'}
           </span>
           <h2 className="font-display text-2xl text-[#0D0D0D] mt-1">
             {mode === 'pending'
@@ -278,7 +414,7 @@ export const AdminPropertiesManagerSection: React.FC<
                 : `All Marketplace Properties (${filteredProperties.length})`}
           </h2>
           <p className="font-body text-xs text-[#737373] mt-0.5">
-            Create, edit, approve, reject, hide, mark featured, or delete listings. All changes update public pages immediately.
+            Create, edit addresses & coordinates, validate map pins, approve, reject, or feature listings. All changes update public pages immediately.
           </p>
         </div>
 
@@ -300,7 +436,7 @@ export const AdminPropertiesManagerSection: React.FC<
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by title, reference code, or city..."
+            placeholder="Search by title, reference code, city, province, or country..."
             className="w-full h-10 pl-9 pr-3 rounded-xl border border-neutral-200 text-xs font-body"
           />
         </div>
@@ -317,6 +453,20 @@ export const AdminPropertiesManagerSection: React.FC<
           <option value="land">Land Parcels</option>
           <option value="event_space">Event Spaces</option>
           <option value="commercial">Commercial</option>
+        </select>
+
+        <select
+          value={locationHealthFilter}
+          onChange={(e) =>
+            setLocationHealthFilter(e.target.value as 'all' | 'verified' | 'flagged')
+          }
+          className="h-10 px-3 rounded-xl border border-neutral-200 text-xs font-ui font-semibold bg-neutral-50"
+        >
+          <option value="all">All Locations ({baseList.length})</option>
+          <option value="verified">Verified Coordinates</option>
+          <option value="flagged">
+            Flagged for Location Review ({flaggedLocationsCount})
+          </option>
         </select>
 
         {mode === 'all' && (
@@ -347,6 +497,7 @@ export const AdminPropertiesManagerSection: React.FC<
           {filteredProperties.map((prop, idx) => {
             const owner = owners.find((o) => o.id === prop.ownerId);
             const isHidden = prop.availabilityStatus === 'hidden';
+            const locValidation = validatePropertyLocation(prop.location);
 
             return (
               <div
@@ -403,10 +554,53 @@ export const AdminPropertiesManagerSection: React.FC<
                       {prop.title}
                     </h3>
                     <p className="text-xs font-body text-[#737373]">
-                      {prop.location.neighborhood}, {prop.location.city},{' '}
+                      {prop.location.address ? `${prop.location.address} — ` : ''}
+                      {prop.location.neighborhood}, {prop.location.city}
+                      {prop.location.province ? `, ${prop.location.province}` : ''},{' '}
                       {prop.location.country} · Owner:{' '}
                       <strong className="text-[#161616]">{owner?.name || 'Verified Owner'}</strong>
                     </p>
+
+                    {/* Coordinate Validation & Google Maps Link Bar (Task 2 & Task 3) */}
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                      <span
+                        className={`px-2 py-0.5 rounded-md font-ui text-[11px] font-semibold inline-flex items-center gap-1 ${
+                          locValidation.needsAdminReview
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                            : locValidation.accuracy === 'approximate'
+                              ? 'bg-sky-50 text-[#1150EF] border border-sky-200'
+                              : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        }`}
+                      >
+                        {locValidation.needsAdminReview ? (
+                          <AlertTriangle className="w-3 h-3 text-amber-700" />
+                        ) : (
+                          <MapPin className="w-3 h-3" />
+                        )}
+                        <span>
+                          {locValidation.statusLabel}
+                          {locValidation.coordinates
+                            ? ` (${locValidation.coordinates.lat.toFixed(4)}, ${locValidation.coordinates.lng.toFixed(4)})`
+                            : ''}
+                        </span>
+                      </span>
+
+                      <a
+                        href={buildGoogleMapsLocationUrl(prop.location)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-ui text-[11px] font-bold text-[#1150EF] hover:underline inline-flex items-center gap-1"
+                      >
+                        <span>View Location</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+
+                    {locValidation.needsAdminReview && locValidation.reason && (
+                      <p className="text-[11px] font-ui text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                        Admin Location Review: {locValidation.reason}
+                      </p>
+                    )}
 
                     <div className="pt-1 flex flex-wrap items-center gap-3 text-xs font-ui">
                       <span className="font-bold text-base text-[#0D0D0D] tabular-nums">
@@ -469,7 +663,7 @@ export const AdminPropertiesManagerSection: React.FC<
                       className="py-2 px-3 rounded-lg bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-semibold inline-flex items-center justify-center gap-1 cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
+                      <span>Edit & Map</span>
                     </button>
 
                     <Link
@@ -561,16 +755,21 @@ export const AdminPropertiesManagerSection: React.FC<
         </div>
       )}
 
-      {/* Create / Edit Property Modal */}
+      {/* Create / Edit Property Modal (with Task 4 Admin Location & Coordinate Editor + Map Preview) */}
       {(isCreating || editingProperty) && (
         <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-3xl max-h-[90vh] bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden flex flex-col">
+          <div className="w-full max-w-4xl max-h-[92vh] bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden flex flex-col">
             <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
-              <h3 className="font-display text-xl text-[#0D0D0D]">
-                {isCreating
-                  ? 'Create New Property Listing'
-                  : `Edit Property: ${editingProperty?.referenceCode}`}
-              </h3>
+              <div>
+                <h3 className="font-display text-xl text-[#0D0D0D]">
+                  {isCreating
+                    ? 'Create New Property Listing'
+                    : `Edit Property & Location: ${editingProperty?.referenceCode}`}
+                </h3>
+                <p className="font-ui text-[11px] text-[#737373]">
+                  Includes Admin Location Editor, coordinate validation, accuracy mode, and live Google Map preview.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -585,7 +784,7 @@ export const AdminPropertiesManagerSection: React.FC<
 
             <form
               onSubmit={handleSavePropertyModal}
-              className="p-6 overflow-y-auto space-y-4 flex-1"
+              className="p-6 overflow-y-auto space-y-5 flex-1"
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
@@ -677,58 +876,224 @@ export const AdminPropertiesManagerSection: React.FC<
                     <option value="per_day">Per Event Day</option>
                   </select>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formCity}
-                    onChange={(e) => setFormCity(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-body"
-                  />
+              {/* ===============================================================
+                  TASK 4: ADMIN LOCATION EDITOR & MAP PREVIEW
+              =============================================================== */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="font-ui text-[11px] font-bold uppercase tracking-wider text-[#1150EF]">
+                      Admin Location & Coordinate Editor
+                    </span>
+                    <h4 className="font-display text-lg text-[#0D0D0D]">
+                      Geographic Address, Coordinates & Pin Accuracy
+                    </h4>
+                  </div>
+                  <a
+                    href={buildGoogleMapsLocationUrl(draftModalLocation)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-white border border-neutral-200 hover:border-[#1150EF] text-[#1150EF] font-ui text-xs font-bold inline-flex items-center gap-1.5"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Test Google Maps Link</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
 
-                <div>
-                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
-                    Neighborhood
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formNeighborhood}
-                    onChange={(e) => setFormNeighborhood(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-body"
-                  />
+                {/* Quick Verified City Reference Selector */}
+                <div className="space-y-1.5">
+                  <div className="font-ui text-[11px] font-semibold text-[#737373]">
+                    Apply Verified Regional Coordinates:
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {VERIFIED_CITY_REFERENCES.map((ref) => {
+                      const active =
+                        formCity.toLowerCase() === ref.city.toLowerCase() &&
+                        formCountry.toLowerCase() === ref.country.toLowerCase();
+                      return (
+                        <button
+                          key={`${ref.city}-${ref.country}`}
+                          type="button"
+                          onClick={() => handleApplyCityReference(ref.city, ref.country)}
+                          className={`px-2.5 py-1 rounded-lg font-ui text-[11px] font-semibold border cursor-pointer transition-colors ${
+                            active
+                              ? 'bg-[#1150EF] text-white border-[#1150EF]'
+                              : 'bg-white text-[#161616] border-neutral-200 hover:border-[#1150EF]'
+                          }`}
+                        >
+                          {ref.city} ({ref.lat.toFixed(4)}, {ref.lng.toFixed(4)})
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formCountry}
-                    onChange={(e) => setFormCountry(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-body"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formCountry}
+                      onChange={(e) => setFormCountry(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-sm font-body"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                      Province / State
+                    </label>
+                    <input
+                      type="text"
+                      value={formProvince}
+                      onChange={(e) => setFormProvince(e.target.value)}
+                      placeholder="e.g. La Altagracia, Ouest"
+                      className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-sm font-body"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formCity}
+                      onChange={(e) => setFormCity(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-sm font-body"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
-                    Street Address
-                  </label>
-                  <input
-                    type="text"
-                    value={formAddress}
-                    onChange={(e) => setFormAddress(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-body"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                      Neighborhood
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formNeighborhood}
+                      onChange={(e) => setFormNeighborhood(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-sm font-body"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                      Street Address (if available)
+                    </label>
+                    <input
+                      type="text"
+                      value={formAddress}
+                      onChange={(e) => setFormAddress(e.target.value)}
+                      className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-sm font-body"
+                    />
+                  </div>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                      Latitude
+                    </label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={formLatInput}
+                      onChange={(e) => setFormLatInput(e.target.value)}
+                      placeholder="18.5000"
+                      className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-sm font-ui tabular-nums"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                      Longitude
+                    </label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={formLngInput}
+                      onChange={(e) => setFormLngInput(e.target.value)}
+                      placeholder="-68.3895"
+                      className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-sm font-ui tabular-nums"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                      Location Display Mode
+                    </label>
+                    <select
+                      value={formLocationAccuracy}
+                      onChange={(e) =>
+                        setFormLocationAccuracy(e.target.value as 'approximate' | 'exact')
+                      }
+                      className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-xs font-ui font-semibold"
+                    >
+                      <option value="approximate">Approximate Area Reference</option>
+                      <option value="exact">Exact Property Coordinates</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Live Validation Status inside Modal */}
+                <div
+                  className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 text-xs font-ui ${
+                    modalLocationValidation.isValid
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                      : 'bg-amber-50 border-amber-300 text-amber-950'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {modalLocationValidation.isValid ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    )}
+                    <div>
+                      <strong>{modalLocationValidation.statusLabel}</strong>
+                      {modalLocationValidation.reason && (
+                        <span className="block text-[11px] opacity-85">
+                          {modalLocationValidation.reason}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormLatInput('');
+                      setFormLngInput('');
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white border border-neutral-200 text-[#161616] font-semibold hover:bg-neutral-100 cursor-pointer"
+                  >
+                    Clear Coordinates
+                  </button>
+                </div>
+
+                {/* Live Map Preview inside Admin Modal */}
+                <div className="space-y-1.5">
+                  <div className="font-ui text-[11px] font-bold uppercase tracking-wider text-[#737373]">
+                    Interactive Map Preview (Before Saving)
+                  </div>
+                  <InteractiveMapDemo
+                    properties={[modalPreviewProperty]}
+                    selectedPropertyId={modalPreviewProperty.id}
+                    heightClass="h-[250px]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
                     Bedrooms
@@ -905,7 +1270,7 @@ export const AdminPropertiesManagerSection: React.FC<
                   type="submit"
                   className="px-5 py-2.5 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white text-xs font-ui font-bold cursor-pointer"
                 >
-                  {isCreating ? 'Create & Publish Listing' : 'Save Property Changes'}
+                  {isCreating ? 'Create & Publish Listing' : 'Save Property & Location Changes'}
                 </button>
               </div>
             </form>

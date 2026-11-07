@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowLeft,
   Calendar,
   CheckCircle2,
   Code2,
   Compass,
   Copy,
+  ExternalLink,
   Flag,
   Heart,
   Layers,
@@ -26,6 +28,11 @@ import { PropertyCard } from '../components/PropertyCard';
 import { PropertyImage } from '../components/PropertyImage';
 import { InteractiveMapDemo } from '../components/InteractiveMapDemo';
 import { ViewingRequest } from '../types';
+import {
+  buildGoogleMapsLocationUrl,
+  formatPropertyLocationLine,
+  validatePropertyLocation
+} from '../utils/locationUtils';
 
 export const PropertyDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -107,6 +114,7 @@ export const PropertyDetailsPage: React.FC = () => {
         : '/events';
 
     const externalImages = property.images.filter((img) => img.startsWith('http'));
+    const locValidation = validatePropertyLocation(property.location);
 
     const mainEntityData: Record<string, unknown> = {
       '@type': accommodationType,
@@ -117,14 +125,18 @@ export const PropertyDetailsPage: React.FC = () => {
         '@type': 'PostalAddress',
         streetAddress: property.location.address,
         addressLocality: property.location.city,
-        addressRegion: property.location.neighborhood,
+        addressRegion: property.location.province || property.location.neighborhood,
         addressCountry: property.location.country
       },
-      geo: {
-        '@type': 'GeoCoordinates',
-        latitude: property.location.coordinates.lat,
-        longitude: property.location.coordinates.lng
-      },
+      ...(locValidation.isValid && locValidation.coordinates
+        ? {
+            geo: {
+              '@type': 'GeoCoordinates',
+              latitude: locValidation.coordinates.lat,
+              longitude: locValidation.coordinates.lng
+            }
+          }
+        : {}),
       floorSize: {
         '@type': 'QuantitativeValue',
         value: property.specs.areaSqm,
@@ -629,13 +641,19 @@ export const PropertyDetailsPage: React.FC = () => {
                       {localizedProp.subtitle}
                     </p>
                   )}
-                  <p className="mt-2.5 flex items-center gap-1.5 font-body text-xs sm:text-sm text-[#161616]">
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2 font-body text-xs sm:text-sm text-[#161616]">
                     <MapPin className="w-4 h-4 text-[#1150EF] shrink-0" />
-                    <span>
-                      {property.location.address} — {property.location.neighborhood},{' '}
-                      {property.location.city}, {property.location.country}
-                    </span>
-                  </p>
+                    <span>{formatPropertyLocationLine(property.location, true)}</span>
+                    <a
+                      href={buildGoogleMapsLocationUrl(property.location)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-[#1150EF]/10 hover:bg-[#1150EF]/20 text-[#1150EF] font-ui text-xs font-bold inline-flex items-center gap-1"
+                    >
+                      <span>View Location</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
 
                 <div className="md:text-right shrink-0">
@@ -808,17 +826,97 @@ export const PropertyDetailsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Spatial Map Preview */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-neutral-200/90 space-y-4">
-              <h2 className="font-display text-2xl text-[#0D0D0D]">
-                {t.property.mapPreview}
-              </h2>
-              <InteractiveMapDemo
-                properties={[property, ...similarProperties]}
-                selectedPropertyId={property.id}
-                heightClass="h-[360px]"
-              />
-            </div>
+            {/* Spatial Map Preview & Verified Location Breakdown */}
+            {(() => {
+              const locValidation = validatePropertyLocation(property.location);
+              const mapsUrl = buildGoogleMapsLocationUrl(property.location);
+              return (
+                <div className="bg-white rounded-2xl p-6 sm:p-8 border border-neutral-200/90 space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="font-display text-2xl text-[#0D0D0D]">
+                        {t.property.mapPreview}
+                      </h2>
+                      <p className="font-body text-xs text-[#737373] mt-0.5">
+                        {formatPropertyLocationLine(property.location, true)}
+                      </p>
+                    </div>
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>View Location</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+
+                  {/* Structured Property Location Metadata Grid (Task 1 & Task 3) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-ui">
+                    <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80">
+                      <span className="text-[10px] text-[#737373] uppercase block">Country</span>
+                      <strong className="text-[#0D0D0D] mt-0.5 block">
+                        {property.location.country}
+                      </strong>
+                    </div>
+                    <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80">
+                      <span className="text-[10px] text-[#737373] uppercase block">
+                        Province / State
+                      </span>
+                      <strong className="text-[#0D0D0D] mt-0.5 block">
+                        {property.location.province || '—'}
+                      </strong>
+                    </div>
+                    <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80">
+                      <span className="text-[10px] text-[#737373] uppercase block">
+                        City & Neighborhood
+                      </span>
+                      <strong className="text-[#0D0D0D] mt-0.5 block">
+                        {property.location.city} · {property.location.neighborhood}
+                      </strong>
+                    </div>
+                    <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80">
+                      <span className="text-[10px] text-[#737373] uppercase block">
+                        Coordinates ({locValidation.accuracy === 'approximate' ? 'Approx. Area' : 'Verified'})
+                      </span>
+                      <strong className="text-[#0D0D0D] mt-0.5 block tabular-nums">
+                        {locValidation.isValid && locValidation.coordinates
+                          ? `${locValidation.coordinates.lat.toFixed(4)}, ${locValidation.coordinates.lng.toFixed(4)}`
+                          : 'Location Not Available'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Accuracy / Validation Banner */}
+                  {locValidation.needsAdminReview ? (
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 font-ui text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>
+                        <strong>{locValidation.statusLabel}:</strong>{' '}
+                        {locValidation.reason || 'Coordinates are unverified for this region.'}
+                      </span>
+                    </div>
+                  ) : locValidation.accuracy === 'approximate' ? (
+                    <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 text-[#0D0D0D] font-ui text-xs flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#1150EF] shrink-0" />
+                      <span>
+                        <strong>Approximate Area Reference:</strong> Coordinates represent the{' '}
+                        {property.location.city} district ({locValidation.coordinates?.lat.toFixed(4)},{' '}
+                        {locValidation.coordinates?.lng.toFixed(4)}) and are not presented as the exact location of a specific house.
+                      </span>
+                    </div>
+                  ) : null}
+
+                  <InteractiveMapDemo
+                    properties={[property, ...similarProperties]}
+                    selectedPropertyId={property.id}
+                    heightClass="h-[380px]"
+                  />
+                </div>
+              );
+            })()}
           </div>
 
           {/* RIGHT 4 COLUMNS: Sticky Direct Owner Consultation & Safety Box */}

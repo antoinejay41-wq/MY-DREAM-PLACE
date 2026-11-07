@@ -261,9 +261,30 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [activeRole, setActiveRoleState] = useState<UserRole>(() =>
     loadFromStorage<UserRole>('activeRole', 'customer')
   );
-  const [properties, setProperties] = useState<Property[]>(() =>
-    loadFromStorage<Property[]>('properties', INITIAL_PROPERTIES)
-  );
+  const [properties, setProperties] = useState<Property[]>(() => {
+    const stored = loadFromStorage<Property[]>('properties', INITIAL_PROPERTIES);
+    return stored.map((item) => {
+      const seed = INITIAL_PROPERTIES.find((s) => s.id === item.id);
+      if (!seed) return item;
+      if (
+        !item.location.province ||
+        (item.id === 'prop-101' &&
+          (item.location.coordinates?.lat !== 18.5 ||
+            item.location.coordinates?.lng !== -68.3895)) ||
+        (item.id === 'prop-109' && item.location.city !== 'Port-au-Prince') ||
+        (item.id === 'prop-110' &&
+          item.location.coordinates?.lat !== 18.5601)
+      ) {
+        return {
+          ...item,
+          location: {
+            ...seed.location
+          }
+        };
+      }
+      return item;
+    });
+  });
   const [owners, setOwners] = useState<Owner[]>(() =>
     loadFromStorage<Owner[]>('owners', INITIAL_OWNERS)
   );

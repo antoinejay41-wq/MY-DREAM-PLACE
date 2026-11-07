@@ -21,6 +21,7 @@ import { HeroVideoCard } from '../components/HeroVideoCard';
 import { PropertySearchBar } from '../components/PropertySearchBar';
 import { PropertyCard } from '../components/PropertyCard';
 import { PropertyImage } from '../components/PropertyImage';
+import { InteractiveMapDemo } from '../components/InteractiveMapDemo';
 
 export const HomePage: React.FC = () => {
   const {
@@ -655,6 +656,14 @@ export const HomePage: React.FC = () => {
                   </div>
                 </button>
               ))}
+            </div>
+
+            {/* Interactive Google Maps Property Explorer */}
+            <div className="mt-8">
+              <InteractiveMapDemo
+                properties={publicProperties}
+                heightClass="h-[440px]"
+              />
             </div>
           </div>
         </section>

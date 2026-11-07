@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { APIProvider } from '@vis.gl/react-google-maps';
 import { CheckCircle2 } from 'lucide-react';
 import { MarketplaceProvider, useMarketplace } from './contexts/MarketplaceContext';
 import { Header } from './components/Header';
@@ -20,6 +21,7 @@ import { ListPropertyPage } from './pages/ListPropertyPage';
 import { CustomerDashboardPage } from './pages/CustomerDashboardPage';
 import { OwnerDashboardPage } from './pages/OwnerDashboardPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { getGoogleMapsApiKey } from './utils/googleMapsConfig';
 
 const ScrollToTop: React.FC = () => {
   const { pathname } = useLocation();
@@ -30,11 +32,44 @@ const ScrollToTop: React.FC = () => {
 };
 
 const AppShell: React.FC = () => {
-  const { toastMessage, websiteSettings } = useMarketplace();
+  const { toastMessage, websiteSettings, language } = useMarketplace();
+  const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState(false);
 
-  return (
+  useEffect(() => {
+    const handleQuotaExceeded = () => {
+      setMapsQuotaExceeded(true);
+    };
+    window.addEventListener('gmp-quota-exceeded', handleQuotaExceeded);
+    return () => {
+      window.removeEventListener('gmp-quota-exceeded', handleQuotaExceeded);
+    };
+  }, []);
+
+  const mapsApiKey = getGoogleMapsApiKey();
+  const mapsLang = language === 'ht' ? 'fr' : language;
+
+  const content = (
     <div className="min-h-screen flex flex-col bg-white text-[#161616]">
       <ScrollToTop />
+
+      {/* Required In-App Quota Banner (Case A: Auto-Provisioned Demo Key) */}
+      {mapsQuotaExceeded && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
+          <span>
+            Google Maps Platform quota reached. If you are the app owner, visit{' '}
+            <a
+              href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-semibold text-amber-950 hover:text-amber-800"
+            >
+              maps developer site
+            </a>{' '}
+            for instructions to update your account.
+          </span>
+        </div>
+      )}
+
       <Header />
 
       {/* Global Toast Notification */}
@@ -76,6 +111,20 @@ const AppShell: React.FC = () => {
       <AuthDemoModal />
     </div>
   );
+
+  if (mapsApiKey) {
+    return (
+      <APIProvider
+        apiKey={mapsApiKey}
+        libraries={['places', 'marker', 'routes']}
+        language={mapsLang}
+      >
+        {content}
+      </APIProvider>
+    );
+  }
+
+  return content;
 };
 
 export default function App() {

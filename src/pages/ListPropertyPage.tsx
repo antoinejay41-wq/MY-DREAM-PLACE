@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   Building2,
   CalendarHeart,
   CheckCircle2,
+  ExternalLink,
   Home,
   ImagePlus,
   Landmark,
+  MapPin,
   ShieldCheck,
   Trees,
   Upload
@@ -23,6 +26,13 @@ import {
 } from '../types';
 import { SCENEAI_IMAGES } from '../data/mockData';
 import { PropertyImage } from '../components/PropertyImage';
+import { InteractiveMapDemo } from '../components/InteractiveMapDemo';
+import {
+  VERIFIED_CITY_REFERENCES,
+  buildGoogleMapsLocationUrl,
+  findCityReference,
+  validatePropertyLocation
+} from '../utils/locationUtils';
 
 export const ListPropertyPage: React.FC = () => {
   const { t, currentUser, submitNewProperty, formatPrice } = useMarketplace();
@@ -36,11 +46,15 @@ export const ListPropertyPage: React.FC = () => {
   const [listingType, setListingType] = useState<ListingType>('sale');
   const [rentalDuration, setRentalDuration] = useState<RentalDuration>('long_term');
 
-  // Step 3: Location
+  // Step 3: Location (Task 1 & Task 4 — Complete location fields + coordinates + accuracy)
+  const [country, setCountry] = useState('Dominican Republic');
+  const [province, setProvince] = useState('La Altagracia');
   const [city, setCity] = useState('Cap Cana');
   const [neighborhood, setNeighborhood] = useState('Playa Juanillo');
-  const [country, setCountry] = useState('Dominican Republic');
   const [address, setAddress] = useState('22 Boulevard de la Costa, Cap Cana');
+  const [latInput, setLatInput] = useState<string>('18.5000');
+  const [lngInput, setLngInput] = useState<string>('-68.3895');
+  const [locationAccuracy, setLocationAccuracy] = useState<'approximate' | 'exact'>('approximate');
 
   // Step 4: Specifications (including Land & Event Venue specific fields)
   const [areaSqm, setAreaSqm] = useState<number>(520);
@@ -100,6 +114,120 @@ export const ListPropertyPage: React.FC = () => {
     { num: 9, label: t.wizard.step9Short }
   ];
 
+  // Parse coordinates safely without falling back to an unrelated city
+  const parsedCoordinates = React.useMemo(() => {
+    const trimmedLat = latInput.trim();
+    const trimmedLng = lngInput.trim();
+    if (!trimmedLat || !trimmedLng) return null;
+    const lat = Number(trimmedLat);
+    const lng = Number(trimmedLng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+  }, [latInput, lngInput]);
+
+  const draftLocation: Property['location'] = React.useMemo(
+    () => ({
+      country: country.trim(),
+      province: province.trim() || undefined,
+      city: city.trim(),
+      neighborhood: neighborhood.trim(),
+      address: address.trim(),
+      coordinates: parsedCoordinates,
+      locationAccuracy
+    }),
+    [country, province, city, neighborhood, address, parsedCoordinates, locationAccuracy]
+  );
+
+  const locationValidation = React.useMemo(
+    () => validatePropertyLocation(draftLocation),
+    [draftLocation]
+  );
+
+  const previewPropertyObject: Property = React.useMemo(
+    () => ({
+      id: 'draft-owner-preview',
+      referenceCode: 'MDP-PREVIEW',
+      title: title.trim() || 'Draft Architectural Listing',
+      subtitle: subtitle.trim(),
+      category,
+      listingType,
+      priceUSD: Number(priceUSD) || 100000,
+      priceUnit,
+      rentalDuration: listingType === 'rent' ? rentalDuration : undefined,
+      location: draftLocation,
+      specs: {
+        areaSqm: Number(areaSqm) || 250,
+        lotSizeSqm: Number(lotSizeSqm) || undefined,
+        bedrooms: category !== 'land' && category !== 'event_space' ? Number(bedrooms) : undefined,
+        bathrooms: category !== 'land' && category !== 'event_space' ? Number(bathrooms) : undefined,
+        parkingSpaces: Number(parkingSpaces) || 2,
+        furnished
+      },
+      description,
+      highlights: [`${neighborhood}, ${city}`],
+      amenities: amenitiesInput
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+      images: images.length > 0 ? images : [SCENEAI_IMAGES.latest1],
+      ownerId: 'own-1',
+      approvalStatus: 'pending',
+      availabilityStatus: 'available',
+      featured: false,
+      dateListed: new Date().toISOString().split('T')[0],
+      viewsCount: 1,
+      inquiriesCount: 0
+    }),
+    [
+      title,
+      subtitle,
+      category,
+      listingType,
+      priceUSD,
+      priceUnit,
+      rentalDuration,
+      draftLocation,
+      areaSqm,
+      lotSizeSqm,
+      bedrooms,
+      bathrooms,
+      parkingSpaces,
+      furnished,
+      description,
+      neighborhood,
+      city,
+      amenitiesInput,
+      images
+    ]
+  );
+
+  const handleApplyCityPreset = (presetCity: string, presetCountry: string) => {
+    const ref = findCityReference(presetCity, presetCountry);
+    if (!ref) return;
+    setCity(ref.city);
+    setProvince(ref.province);
+    setCountry(ref.country);
+    setLatInput(ref.lat.toFixed(4));
+    setLngInput(ref.lng.toFixed(4));
+    setLocationAccuracy(ref.defaultAccuracy);
+    if (ref.city === 'Cap Cana') {
+      setNeighborhood('Playa Juanillo');
+      setAddress('Cap Cana Resort District');
+    } else if (ref.city === 'Punta Cana') {
+      setNeighborhood('Los Corales — Bávaro');
+      setAddress('Avenida Alemania, Bávaro, Punta Cana');
+    } else if (ref.city === 'Santo Domingo') {
+      setNeighborhood('Piantini');
+      setAddress('Calle Federico Geraldino, Piantini');
+    } else if (ref.city === 'Port-au-Prince') {
+      setNeighborhood('Bourdon');
+      setAddress('Rue Mercier, Bourdon, Port-au-Prince');
+    } else if (ref.city === 'Pétion-Ville') {
+      setNeighborhood('Morne Calvaire');
+      setAddress('Rue Borno, Pétion-Ville');
+    }
+  };
+
   const handleCategorySelect = (cat: PropertyCategory) => {
     setCategory(cat);
     if (cat === 'land') {
@@ -141,13 +269,7 @@ export const ListPropertyPage: React.FC = () => {
       priceUSD: Number(priceUSD) || 100000,
       priceUnit,
       rentalDuration: listingType === 'rent' ? rentalDuration : undefined,
-      location: {
-        city,
-        neighborhood,
-        country,
-        address,
-        coordinates: { lat: 18.51, lng: -70.12 }
-      },
+      location: draftLocation,
       specs: {
         areaSqm: Number(areaSqm) || 250,
         lotSizeSqm: Number(lotSizeSqm) || undefined,
@@ -174,7 +296,7 @@ export const ListPropertyPage: React.FC = () => {
       description,
       highlights: [
         `${t.wizard.submittedByLabel} ${ownerName} (${ownerPhone})`,
-        `${neighborhood}, ${city}`
+        `${neighborhood}, ${city}${province ? `, ${province}` : ''}`
       ],
       amenities,
       images: images.length > 0 ? images : [SCENEAI_IMAGES.latest1],
@@ -395,18 +517,83 @@ export const ListPropertyPage: React.FC = () => {
             </div>
           )}
 
-          {/* STEP 3: LOCATION */}
+          {/* STEP 3: LOCATION (Task 1, Task 3, Task 4) */}
           {step === 3 && (
             <div className="space-y-6">
-              <div>
-                <h2 className="font-display text-2xl text-[#0D0D0D]">
-                  {t.wizard.step3Title}
-                </h2>
-                <p className="font-body text-sm text-[#737373] mt-1">
-                  {t.wizard.step3Desc}
-                </p>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="font-display text-2xl text-[#0D0D0D]">
+                    {t.wizard.step3Title}
+                  </h2>
+                  <p className="font-body text-sm text-[#737373] mt-1">
+                    {t.wizard.step3Desc}
+                  </p>
+                </div>
+                <a
+                  href={buildGoogleMapsLocationUrl(draftLocation)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-[#1150EF] font-ui text-xs font-bold inline-flex items-center gap-1.5"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>View Location on Google Maps</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* Verified Regional Quick-Presets */}
+              <div className="p-3.5 rounded-xl bg-neutral-50 border border-neutral-200 space-y-2">
+                <div className="font-ui text-[11px] font-bold uppercase tracking-wider text-[#737373]">
+                  Quick Regional Reference Presets (Auto-fills Country, Province & Coordinates)
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {VERIFIED_CITY_REFERENCES.map((ref) => {
+                    const isSelected =
+                      city.toLowerCase() === ref.city.toLowerCase() &&
+                      country.toLowerCase() === ref.country.toLowerCase();
+                    return (
+                      <button
+                        key={`${ref.city}-${ref.country}`}
+                        type="button"
+                        onClick={() => handleApplyCityPreset(ref.city, ref.country)}
+                        className={`px-2.5 py-1.5 rounded-lg font-ui text-xs font-semibold border transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#1150EF] text-white border-[#1150EF]'
+                            : 'bg-white text-[#161616] border-neutral-200 hover:border-[#1150EF]'
+                        }`}
+                      >
+                        {ref.city}, {ref.country === 'Dominican Republic' ? 'DR' : ref.country === 'Haiti' ? 'HT' : 'US'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                    {t.wizard.countryLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="Dominican Republic, Haiti, United States"
+                    className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm font-body"
+                  />
+                </div>
+                <div>
+                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                    Province / State / Department
+                  </label>
+                  <input
+                    type="text"
+                    value={province}
+                    onChange={(e) => setProvince(e.target.value)}
+                    placeholder="e.g. La Altagracia, Distrito Nacional, Ouest"
+                    className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm font-body"
+                  />
+                </div>
                 <div>
                   <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
                     {t.wizard.cityLabel}
@@ -418,6 +605,9 @@ export const ListPropertyPage: React.FC = () => {
                     className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm font-body"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
                     {t.wizard.neighborhoodLabel}
@@ -431,18 +621,7 @@ export const ListPropertyPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
-                    {t.wizard.countryLabel}
-                  </label>
-                  <input
-                    type="text"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm font-body"
-                  />
-                </div>
-                <div>
-                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
-                    {t.wizard.addressLabel}
+                    {t.wizard.addressLabel} (if available)
                   </label>
                   <input
                     type="text"
@@ -451,6 +630,105 @@ export const ListPropertyPage: React.FC = () => {
                     className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm font-body"
                   />
                 </div>
+              </div>
+
+              {/* Coordinates & Location Display Mode */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-neutral-100">
+                <div>
+                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                    Latitude
+                  </label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={latInput}
+                    onChange={(e) => setLatInput(e.target.value)}
+                    placeholder="e.g. 18.5000"
+                    className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm font-ui tabular-nums"
+                  />
+                </div>
+                <div>
+                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                    Longitude
+                  </label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={lngInput}
+                    onChange={(e) => setLngInput(e.target.value)}
+                    placeholder="e.g. -68.3895"
+                    className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-sm font-ui tabular-nums"
+                  />
+                </div>
+                <div>
+                  <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                    Map Location Display Mode
+                  </label>
+                  <select
+                    value={locationAccuracy}
+                    onChange={(e) =>
+                      setLocationAccuracy(e.target.value as 'approximate' | 'exact')
+                    }
+                    className="w-full h-11 px-3.5 rounded-xl border border-neutral-200 text-xs font-ui font-semibold bg-white"
+                  >
+                    <option value="approximate">
+                      Approximate Area Reference (Recommended for Privacy)
+                    </option>
+                    <option value="exact">Exact Verified Property Coordinates</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Real-time Coordinate Validation Banner */}
+              <div
+                className={`p-3.5 rounded-xl border flex flex-wrap items-center justify-between gap-3 text-xs font-ui ${
+                  locationValidation.isValid
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                    : 'bg-amber-50 border-amber-300 text-amber-950'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {locationValidation.isValid ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  )}
+                  <div>
+                    <strong>{locationValidation.statusLabel}</strong>
+                    {locationValidation.reason && (
+                      <span className="block text-[11px] opacity-85 mt-0.5">
+                        {locationValidation.reason}
+                      </span>
+                    )}
+                    {city.trim().toLowerCase() === 'cap cana' && (
+                      <span className="block text-[11px] opacity-85 mt-0.5">
+                        Cap Cana uses approximate geographic reference (18.5000, -68.3895) — not presented as an exact house pin.
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLatInput('');
+                    setLngInput('');
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-white border border-neutral-200 text-[#161616] font-semibold hover:bg-neutral-100 cursor-pointer"
+                >
+                  Clear Coordinates
+                </button>
+              </div>
+
+              {/* Live Map Preview before saving */}
+              <div className="space-y-2 pt-2">
+                <div className="font-ui text-xs font-bold uppercase tracking-wider text-[#737373]">
+                  Live Map Preview
+                </div>
+                <InteractiveMapDemo
+                  properties={[previewPropertyObject]}
+                  selectedPropertyId={previewPropertyObject.id}
+                  heightClass="h-[280px]"
+                />
               </div>
             </div>
           )}
@@ -876,7 +1154,15 @@ export const ListPropertyPage: React.FC = () => {
                   </div>
                   <h3 className="font-display text-2xl text-[#0D0D0D]">{title}</h3>
                   <p className="text-xs font-body text-[#737373]">
-                    {address}, {neighborhood}, {city}, {country}
+                    {address ? `${address} — ` : ''}
+                    {neighborhood}, {city}
+                    {province ? `, ${province}` : ''}, {country}
+                  </p>
+                  <p className="text-[11px] font-ui font-semibold text-[#1150EF]">
+                    {locationValidation.statusLabel}
+                    {parsedCoordinates
+                      ? ` (${parsedCoordinates.lat.toFixed(4)}, ${parsedCoordinates.lng.toFixed(4)})`
+                      : ''}
                   </p>
                   <div className="font-ui text-xl font-bold text-[#0D0D0D] tabular-nums pt-1">
                     {formatPrice(priceUSD, priceUnit)}
