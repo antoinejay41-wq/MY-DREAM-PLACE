@@ -106,7 +106,8 @@ The visual **Admin CMS** at `/admin` (also accessible via `/dashboard/admin`) op
 │   │   └── translations.ts      # Complete EN, FR, ES, and HT dictionaries
 │   ├── pages/
 │   │   ├── HomePage.tsx         # Dynamic CMS-driven luxury marketplace homepage
-│   │   ├── ExplorePage.tsx      # Split-screen filter & interactive map catalog
+│   │   ├── CatalogPage.tsx      # Split-screen filter & interactive map catalog (/buy, /rent, /land, /events, /explore)
+│   │   ├── AgentsPage.tsx       # Verified luxury real estate agents directory (/agents)
 │   │   ├── PropertyDetailsPage.tsx # Full listing view + Schema.org JSON-LD + tour booking
 │   │   ├── ListPropertyPage.tsx # Multi-step property submission wizard
 │   │   ├── CustomerDashboardPage.tsx
@@ -116,6 +117,8 @@ The visual **Admin CMS** at `/admin` (also accessible via `/dashboard/admin`) op
 │   │   └── index.ts             # TypeScript interfaces for listings, users, and CMS state
 │   └── utils/
 │       └── mediaStorage.ts      # IndexedDB storage engine with file validation & quota tracking
+├── .npmrc                       # Peer dependency resolution for clean CI/Vercel installs
+└── vercel.json                  # Vercel SPA rewrites, Vite framework preset, and cache headers
 ```
 
 ---
@@ -144,6 +147,22 @@ npm run lint
 # Build for production
 npm run build
 ```
+
+---
+
+## Deploying to Vercel
+
+This project is pre-configured for zero-config deployment on **Vercel** via `vercel.json` and `.npmrc`:
+
+1. **Client-Side Routing (`vercel.json`)**: All SPA routes (`/admin`, `/buy`, `/rent`, `/land`, `/events`, `/agents`, `/property/:id`, `/list-property`, `/dashboard/*`) are automatically rewritten to `/index.html` so direct links and page refreshes never return a 404.
+2. **Option A — Deploy via GitHub**:
+   - Push this repository to GitHub.
+   - Import the repository in [Vercel](https://vercel.com/new).
+   - Vercel automatically detects the **Vite** framework, runs `npm run build`, and serves the `dist` directory.
+3. **Option B — Deploy via Vercel CLI**:
+   ```bash
+   npx vercel --prod
+   ```
 
 ---
 

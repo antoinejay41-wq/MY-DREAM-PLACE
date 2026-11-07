@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { MarketplaceProvider, useMarketplace } from './contexts/MarketplaceContext';
 import { Header } from './components/Header';
@@ -21,11 +21,20 @@ import { CustomerDashboardPage } from './pages/CustomerDashboardPage';
 import { OwnerDashboardPage } from './pages/OwnerDashboardPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 
+const ScrollToTop: React.FC = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [pathname]);
+  return null;
+};
+
 const AppShell: React.FC = () => {
   const { toastMessage, websiteSettings } = useMarketplace();
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#161616]">
+      <ScrollToTop />
       <Header />
 
       {/* Global Toast Notification */}
@@ -43,6 +52,7 @@ const AppShell: React.FC = () => {
       <main className="flex-1 w-full">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/explore" element={<CatalogPage mode="sale" />} />
           <Route path="/buy" element={<CatalogPage mode="sale" />} />
           <Route path="/rent" element={<CatalogPage mode="rent" />} />
           <Route path="/land" element={<CatalogPage mode="land" />} />
