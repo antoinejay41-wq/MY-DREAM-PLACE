@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  :root {
+    --color-primary: #1150EF;
+    --color-secondary: #135AF3;
+    --color-sky: #76A2FA;
+    --color-light-blue: #B9CFFD;
+    --color-white: #FFFFFF;
+    --color-charcoal: #161616;
+    --color-near-black: #0D0D0D;
+    --color-gray: #737373;
+
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-sans: 'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-ui: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-family: var(--font-sans);
+    color: #161616;
+    background-color: #FFFFFF;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    color: #161616;
+    background-color: #FFFFFF;
+  }
+}
+
+/* Global Shared Responsive Container — Section 2 Mandatory Architecture */
+.mdp-container {
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 2.5vw, 40px);
+  box-sizing: border-box;
+}
+
+/* Typography Helpers */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-sans);
+}
+
+.font-ui {
+  font-family: var(--font-ui);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hero Gradient & Cloud Glows — Section 3 */
+.mdp-hero-bg {
+  background-color: #1150ef;
+  background-image:
+    radial-gradient(40% 18% at 30% 12%, rgba(120, 170, 255, 0.35) 0%, transparent 70%),
+    radial-gradient(35% 14% at 78% 26%, rgba(130, 175, 255, 0.28) 0%, transparent 70%),
+    radial-gradient(30% 10% at 55% 3%, rgba(110, 160, 255, 0.30) 0%, transparent 70%),
+    linear-gradient(180deg, #1150ef 0%, #135af3 30%, #3c7af6 52%, #76a2fa 64%, #86acfb 70%, #b9cffd 84%, #ffffff 100%);
+}
+
+/* Section 3 & 5: Word-by-word entrance animation & Vertical Grid Lines */
+@keyframes wordIn {
+  0% {
+    opacity: 0;
+    transform: translateY(0.45em);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes gridLineScale {
+  0% {
+    transform: scaleY(0);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes houseFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-word-in {
+  opacity: 0;
+  animation-name: wordIn;
+  animation-duration: 0.95s;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation-fill-mode: forwards;
+  will-change: transform, opacity, filter;
+}
+
+.animate-grid-line {
+  transform-origin: top center;
+  transform: scaleY(0);
+  animation-name: gridLineScale;
+  animation-duration: 1.6s;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation-fill-mode: forwards;
+}
+
+.animate-house-entrance {
+  opacity: 0;
+  animation: houseFadeUp 1.35s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s forwards;
+}
+
+/* Reduced Motion Fallback — Section 5 */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-word-in,
+  .animate-grid-line,
+  .animate-house-entrance {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+/* Custom subtle scrollbars for horizontal galleries */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

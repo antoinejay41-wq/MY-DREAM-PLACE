@@ -1,0 +1,6 @@
+{
+  "name": "MY DREAM PLACE — Real Estate",
+  "description": "Find the place you've always dreamed of. A luxury real estate marketplace for buying, renting, land acquisition, and premier event spaces.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
