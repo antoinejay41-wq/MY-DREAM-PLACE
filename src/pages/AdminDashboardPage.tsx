@@ -84,7 +84,9 @@ export const AdminDashboardPage: React.FC = () => {
     reviewPropertyApproval,
     formatPrice,
     firebaseUser,
+    isAuthReady,
     isVerifiedAdmin,
+    setAuthModalMode,
     signInWithGoogle,
     logoutAdminSession,
     syncSeedCatalogToFirestore
@@ -105,6 +107,105 @@ export const AdminDashboardPage: React.FC = () => {
       setStatusToast((prev) => (prev === message ? null : prev));
     }, 3500);
   };
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-[70vh] bg-neutral-100/80 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-8 max-w-md w-full text-center space-y-3 shadow-sm">
+          <ShieldCheck className="w-10 h-10 text-[#1150EF] mx-auto animate-pulse" />
+          <h1 className="font-display text-xl text-[#0D0D0D]">
+            Verifying Administrator Session...
+          </h1>
+          <p className="font-body text-xs text-[#737373]">
+            Checking your authenticated credentials and security permissions.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!firebaseUser || !isVerifiedAdmin) {
+    return (
+      <div className="min-h-[75vh] bg-neutral-100/80 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-8 max-w-lg w-full text-center space-y-5 shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-[#1150EF]/10 text-[#1150EF] flex items-center justify-center mx-auto">
+            <ShieldCheck className="w-7 h-7" />
+          </div>
+          {!firebaseUser ? (
+            <>
+              <div className="space-y-2">
+                <span className="px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 font-ui text-[11px] font-bold uppercase tracking-wider">
+                  Protected Admin Area
+                </span>
+                <h1 className="font-display text-2xl sm:text-3xl text-[#0D0D0D]">
+                  Administrator Sign-In Required
+                </h1>
+                <p className="font-body text-sm text-[#737373]">
+                  Please sign in with an authorized administrator account to access the Website Control Center, property approvals, and user management.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAuthModalMode('signin')}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Log In with Email & Password
+                </button>
+                <button
+                  type="button"
+                  onClick={signInWithGoogle}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#0D0D0D] hover:bg-neutral-800 text-white font-ui text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Continue with Google
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <span className="px-2.5 py-1 rounded-md bg-rose-100 text-rose-900 font-ui text-[11px] font-bold uppercase tracking-wider">
+                  Access Restricted
+                </span>
+                <h1 className="font-display text-2xl sm:text-3xl text-[#0D0D0D]">
+                  Administrator Privileges Required
+                </h1>
+                <p className="font-body text-sm text-[#737373]">
+                  You are currently signed in as <strong className="text-[#0D0D0D]">{firebaseUser.email}</strong>, which is not registered as an administrator. Please switch to an authorized admin account or return to your dashboard.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <Link
+                  to="/dashboard/customer"
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold transition-colors"
+                >
+                  Go to My Dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await logoutAdminSession();
+                    setAuthModalMode('signin');
+                  }}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-ui text-xs font-bold cursor-pointer transition-colors"
+                >
+                  Log Out & Switch Account
+                </button>
+              </div>
+            </>
+          )}
+          <div className="pt-2 border-t border-neutral-100">
+            <Link
+              to="/"
+              className="font-ui text-xs font-semibold text-[#737373] hover:text-[#1150EF]"
+            >
+              ← Return to Public Marketplace
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const pendingProperties = properties.filter((p) => p.approvalStatus !== 'approved');
   const approvedProperties = properties.filter((p) => p.approvalStatus === 'approved');
@@ -251,17 +352,10 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="mdp-container py-3.5 flex flex-wrap items-center justify-between gap-4">
           {/* Left: Brand + Firebase / CMS State Indicator */}
           <div className="flex flex-wrap items-center gap-3">
-            {firebaseUser && isVerifiedAdmin ? (
-              <span className="px-2.5 py-1 rounded-md bg-emerald-400 text-[#0D0D0D] font-ui text-[11px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>FIREBASE LIVE — Verified Admin ({firebaseUser.email})</span>
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 rounded-md bg-amber-400 text-[#0D0D0D] font-ui text-[11px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>DEMO MODE — Sign In with Google for Firestore Admin Writes</span>
-              </span>
-            )}
+            <span className="px-2.5 py-1 rounded-md bg-emerald-400 text-[#0D0D0D] font-ui text-[11px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Verified Admin ({firebaseUser.email})</span>
+            </span>
 
             {hasUnsavedDraftChanges ? (
               <span className="px-2.5 py-1 rounded-md bg-amber-500/20 border border-amber-400/40 text-amber-300 font-ui text-xs font-semibold inline-flex items-center gap-1.5">
@@ -283,33 +377,18 @@ export const AdminDashboardPage: React.FC = () => {
 
           {/* Right: Draft / Preview / Publish / Restore / Firebase Sync Workflow Controls */}
           <div className="flex flex-wrap items-center gap-2">
-            {!firebaseUser ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  await signInWithGoogle();
-                  triggerToast('Google authentication flow completed.');
-                }}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
-                title="Sign in with Google to write directly to Cloud Firestore"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin Google Sign-In</span>
-              </button>
-            ) : isVerifiedAdmin ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  await syncSeedCatalogToFirestore();
-                  triggerToast('Synchronized catalog and CMS state to Cloud Firestore.');
-                }}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
-                title="Seed or synchronize all current properties and CMS config to Cloud Firestore"
-              >
-                <UploadCloud className="w-3.5 h-3.5" />
-                <span>Sync Catalog to Firestore</span>
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={async () => {
+                await syncSeedCatalogToFirestore();
+                triggerToast('Synchronized catalog and CMS state to Cloud Firestore.');
+              }}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+              title="Seed or synchronize all current properties and CMS config to Cloud Firestore"
+            >
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Sync Catalog to Firestore</span>
+            </button>
             <button
               type="button"
               onClick={handleSaveDraft}

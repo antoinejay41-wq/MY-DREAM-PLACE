@@ -23,9 +23,11 @@ export const Header: React.FC = () => {
     t,
     currency,
     setCurrency,
+    currentUser,
     activeRole,
     setActiveRole,
     firebaseUser,
+    isVerifiedAdmin,
     logoutAdminSession,
     favorites,
     compareIds,
@@ -152,9 +154,17 @@ export const Header: React.FC = () => {
   const currencies: CurrencyCode[] = ['USD', 'DOP', 'HTG'];
 
   const handleRoleSelect = (role: UserRole, path: string) => {
-    setActiveRole(role);
     setRoleMenuOpen(false);
     setMobileMenuOpen(false);
+    if (!firebaseUser) {
+      setAuthModalMode('signin');
+      return;
+    }
+    if (role === 'admin' && !isVerifiedAdmin) {
+      setAuthModalMode('signin');
+      return;
+    }
+    setActiveRole(role);
     navigate(path);
   };
 
@@ -434,76 +444,96 @@ export const Header: React.FC = () => {
             )}
           </div>
 
-          {/* Dashboards & Role Switcher Dropdown (Desktop) */}
-          <div ref={roleDropdownRef} className="relative hidden lg:block">
-            <button
-              type="button"
-              onClick={() => setRoleMenuOpen((prev) => !prev)}
-              className={`min-h-[40px] px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 font-ui text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors border ${
-                isHomeHero
-                  ? 'border-white/25 bg-white/10 text-white hover:bg-white/20'
-                  : 'border-neutral-200 bg-white text-[#161616] hover:border-[#1150EF]'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span className="capitalize">{activeRole}</span>
-              {(unreadNotificationsCount > 0 || pendingApprovalsCount > 0) && (
-                <span className="ml-0.5 px-1.5 py-0.2 text-[10px] rounded-md bg-amber-400 text-[#0D0D0D] font-bold tabular-nums">
-                  {activeRole === 'admin' ? pendingApprovalsCount : unreadNotificationsCount}
+          {/* Dashboards & Authenticated Account Dropdown (Desktop - only when signed in) */}
+          {firebaseUser && (
+            <div ref={roleDropdownRef} className="relative hidden lg:block">
+              <button
+                type="button"
+                onClick={() => setRoleMenuOpen((prev) => !prev)}
+                className={`min-h-[40px] px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 font-ui text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors border ${
+                  isHomeHero
+                    ? 'border-white/25 bg-white/10 text-white hover:bg-white/20'
+                    : 'border-neutral-200 bg-white text-[#161616] hover:border-[#1150EF]'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span className="max-w-[120px] truncate">
+                  {currentUser.name || firebaseUser.email?.split('@')[0] || activeRole}
                 </span>
-              )}
-              <ChevronDown className="w-3.5 h-3.5 opacity-75" />
-            </button>
-
-            {roleMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 rounded-xl bg-white text-[#161616] shadow-xl border border-neutral-200/90 p-2 z-50">
-                <div className="px-3 py-1.5 text-[11px] font-ui font-bold uppercase tracking-wider text-[#737373]">
-                  {t.nav.dashboardsLabel}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleRoleSelect('customer', '/dashboard/customer')}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-ui font-medium text-left cursor-pointer transition-colors ${
-                    location.pathname.startsWith('/dashboard/customer')
-                      ? 'bg-[#1150EF]/10 text-[#1150EF] font-semibold'
-                      : 'hover:bg-neutral-100'
-                  }`}
-                >
-                  <span>{t.nav.customerDashboard}</span>
-                  <span className="text-[11px] text-[#737373]">{t.nav.buyerRenter}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRoleSelect('owner', '/dashboard/owner')}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-ui font-medium text-left cursor-pointer transition-colors ${
-                    location.pathname.startsWith('/dashboard/owner')
-                      ? 'bg-[#1150EF]/10 text-[#1150EF] font-semibold'
-                      : 'hover:bg-neutral-100'
-                  }`}
-                >
-                  <span>{t.nav.ownerDashboard}</span>
-                  <span className="text-[11px] text-[#737373]">{t.nav.ownerAgent}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRoleSelect('admin', '/admin')}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-ui font-medium text-left cursor-pointer transition-colors ${
-                    location.pathname.startsWith('/admin') ||
-                    location.pathname.startsWith('/dashboard/admin')
-                      ? 'bg-[#1150EF]/10 text-[#1150EF] font-semibold'
-                      : 'hover:bg-neutral-100'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#1150EF]" />
-                    {t.nav.adminQueue} (/admin)
+                <span className="px-1.5 py-0.5 text-[10px] rounded bg-black/10 uppercase tracking-wider font-bold">
+                  {activeRole === 'customer' ? 'Buyer' : activeRole}
+                </span>
+                {(unreadNotificationsCount > 0 || (isVerifiedAdmin && pendingApprovalsCount > 0)) && (
+                  <span className="ml-0.5 px-1.5 py-0.2 text-[10px] rounded-md bg-amber-400 text-[#0D0D0D] font-bold tabular-nums">
+                    {isVerifiedAdmin ? pendingApprovalsCount : unreadNotificationsCount}
                   </span>
-                  <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px] tabular-nums">
-                    {pendingApprovalsCount} {t.nav.pendingShort}
-                  </span>
-                </button>
+                )}
+                <ChevronDown className="w-3.5 h-3.5 opacity-75" />
+              </button>
 
-                {(activeRole === 'admin' || firebaseUser) && (
+              {roleMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-xl bg-white text-[#161616] shadow-xl border border-neutral-200/90 p-2 z-50">
+                  <div className="px-3 py-2 border-b border-neutral-100 mb-1">
+                    <div className="font-ui text-xs font-bold text-[#0D0D0D] truncate">
+                      {currentUser.name || 'Verified Account'}
+                    </div>
+                    <div className="font-body text-[11px] text-[#737373] truncate">
+                      {firebaseUser.email}
+                    </div>
+                  </div>
+                  <div className="px-3 py-1.5 text-[11px] font-ui font-bold uppercase tracking-wider text-[#737373]">
+                    {t.nav.dashboardsLabel}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRoleSelect('customer', '/dashboard/customer')}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-ui font-medium text-left cursor-pointer transition-colors ${
+                      location.pathname.startsWith('/dashboard/customer')
+                        ? 'bg-[#1150EF]/10 text-[#1150EF] font-semibold'
+                        : 'hover:bg-neutral-100'
+                    }`}
+                  >
+                    <span>{t.nav.customerDashboard}</span>
+                    <span className="text-[11px] text-[#737373]">{t.nav.buyerRenter}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleRoleSelect(
+                        currentUser.role === 'agent' ? 'agent' : 'owner',
+                        '/dashboard/owner'
+                      )
+                    }
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-ui font-medium text-left cursor-pointer transition-colors ${
+                      location.pathname.startsWith('/dashboard/owner')
+                        ? 'bg-[#1150EF]/10 text-[#1150EF] font-semibold'
+                        : 'hover:bg-neutral-100'
+                    }`}
+                  >
+                    <span>{t.nav.ownerDashboard}</span>
+                    <span className="text-[11px] text-[#737373]">{t.nav.ownerAgent}</span>
+                  </button>
+                  {isVerifiedAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleRoleSelect('admin', '/admin')}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-ui font-medium text-left cursor-pointer transition-colors ${
+                        location.pathname.startsWith('/admin') ||
+                        location.pathname.startsWith('/dashboard/admin')
+                          ? 'bg-[#1150EF]/10 text-[#1150EF] font-semibold'
+                          : 'hover:bg-neutral-100'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#1150EF]" />
+                        {t.nav.adminQueue} (/admin)
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px] tabular-nums">
+                        {pendingApprovalsCount} {t.nav.pendingShort}
+                      </span>
+                    </button>
+                  )}
+
                   <div className="mt-1.5 pt-1.5 border-t border-neutral-100">
                     <button
                       type="button"
@@ -516,26 +546,26 @@ export const Header: React.FC = () => {
                     >
                       <span className="flex items-center gap-1.5">
                         <LogOut className="w-3.5 h-3.5" />
-                        Log Out of Admin / Sign Out
+                        Log Out / Sign Out
                       </span>
                       <span className="text-[10px] uppercase tracking-wider">Exit</span>
                     </button>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Desktop Auth Actions: Register or Log Out when in Admin */}
+          {/* Desktop Auth Actions: Log In + Register when signed out, or Log Out when signed in */}
           <div className="hidden lg:flex items-center gap-2 shrink-0">
-            {(activeRole === 'admin' || firebaseUser) && (
+            {firebaseUser ? (
               <button
                 type="button"
                 onClick={async () => {
                   await logoutAdminSession();
                   navigate('/');
                 }}
-                title="Log out of Admin session and return to public website"
+                title="Log out of your account session"
                 className={`min-h-[40px] px-3.5 py-2 ${branding.buttonRadius || 'rounded-lg'} font-ui text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-all inline-flex items-center gap-1.5 ${
                   isHomeHero
                     ? 'bg-rose-600 text-white hover:bg-rose-500'
@@ -545,18 +575,32 @@ export const Header: React.FC = () => {
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Log Out</span>
               </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setAuthModalMode('signin')}
+                  className={`min-h-[40px] px-3.5 py-2 ${branding.buttonRadius || 'rounded-lg'} font-ui text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-all border ${
+                    isHomeHero
+                      ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                      : 'border-neutral-200 bg-white text-[#161616] hover:border-[#1150EF]'
+                  }`}
+                >
+                  {t.nav.signIn}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthModalMode('register')}
+                  className={`min-h-[40px] px-4 py-2 ${branding.buttonRadius || 'rounded-lg'} font-ui text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-all shadow-xs ${
+                    isHomeHero
+                      ? 'bg-white text-[#1150EF] hover:bg-neutral-100'
+                      : 'bg-[#1150EF] text-white hover:bg-[#135AF3]'
+                  }`}
+                >
+                  {t.nav.register}
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              onClick={() => setAuthModalMode('register')}
-              className={`min-h-[40px] px-4 py-2 ${branding.buttonRadius || 'rounded-lg'} font-ui text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-all shadow-xs ${
-                isHomeHero
-                  ? 'bg-white text-[#1150EF] hover:bg-neutral-100'
-                  : 'bg-[#1150EF] text-white hover:bg-[#135AF3]'
-              }`}
-            >
-              {t.nav.register}
-            </button>
           </div>
 
           {/* Tablet & Mobile Hamburger Button (>= 44px touch target) */}
@@ -606,42 +650,51 @@ export const Header: React.FC = () => {
               })}
             </div>
 
-            {/* Interactive Dashboards & Role Switcher */}
-            <div className="border-t border-neutral-200 pt-5 mb-6">
-              <p className="text-xs font-ui font-bold uppercase tracking-wider text-[#737373] mb-3">
-                {t.nav.dashboardsLabel}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleRoleSelect('customer', '/dashboard/customer')}
-                  className="min-h-[44px] px-4 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-left font-ui text-xs font-semibold flex items-center justify-between cursor-pointer"
-                >
-                  <span>{t.nav.customerDashboard}</span>
-                  <Bell className="w-3.5 h-3.5 text-[#1150EF]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRoleSelect('owner', '/dashboard/owner')}
-                  className="min-h-[44px] px-4 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-left font-ui text-xs font-semibold flex items-center justify-between cursor-pointer"
-                >
-                  <span>{t.nav.ownerDashboard}</span>
-                  <UserCheck className="w-3.5 h-3.5 text-[#1150EF]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRoleSelect('admin', '/admin')}
-                  className="min-h-[44px] px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 text-left font-ui text-xs font-semibold flex items-center justify-between cursor-pointer"
-                >
-                  <span>{t.nav.adminQueue} (/admin)</span>
-                  <span className="font-bold tabular-nums">{pendingApprovalsCount}</span>
-                </button>
+            {/* Interactive Dashboards (Only shown when signed in) */}
+            {firebaseUser && (
+              <div className="border-t border-neutral-200 pt-5 mb-6">
+                <p className="text-xs font-ui font-bold uppercase tracking-wider text-[#737373] mb-3">
+                  {t.nav.dashboardsLabel} ({firebaseUser.email})
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRoleSelect('customer', '/dashboard/customer')}
+                    className="min-h-[44px] px-4 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-left font-ui text-xs font-semibold flex items-center justify-between cursor-pointer"
+                  >
+                    <span>{t.nav.customerDashboard}</span>
+                    <Bell className="w-3.5 h-3.5 text-[#1150EF]" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleRoleSelect(
+                        currentUser.role === 'agent' ? 'agent' : 'owner',
+                        '/dashboard/owner'
+                      )
+                    }
+                    className="min-h-[44px] px-4 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-left font-ui text-xs font-semibold flex items-center justify-between cursor-pointer"
+                  >
+                    <span>{t.nav.ownerDashboard}</span>
+                    <UserCheck className="w-3.5 h-3.5 text-[#1150EF]" />
+                  </button>
+                  {isVerifiedAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleRoleSelect('admin', '/admin')}
+                      className="min-h-[44px] px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 text-left font-ui text-xs font-semibold flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{t.nav.adminQueue} (/admin)</span>
+                      <span className="font-bold tabular-nums">{pendingApprovalsCount}</span>
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Auth Actions */}
             <div className="border-t border-neutral-200 pt-5 flex flex-col sm:flex-row gap-2.5">
-              {(activeRole === 'admin' || firebaseUser) && (
+              {firebaseUser ? (
                 <button
                   type="button"
                   onClick={async () => {
@@ -652,19 +705,32 @@ export const Header: React.FC = () => {
                   className="min-h-[46px] flex-1 px-4 py-3 rounded-xl bg-rose-600 text-white font-ui text-sm font-semibold hover:bg-rose-700 inline-flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>Log Out & Exit Admin</span>
+                  <span>Log Out</span>
                 </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setAuthModalMode('signin');
+                    }}
+                    className="min-h-[46px] flex-1 px-4 py-3 rounded-xl bg-neutral-100 text-[#161616] font-ui text-sm font-semibold hover:bg-neutral-200 cursor-pointer"
+                  >
+                    {t.nav.signIn}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setAuthModalMode('register');
+                    }}
+                    className="min-h-[46px] flex-1 px-4 py-3 rounded-xl bg-[#1150EF] text-white font-ui text-sm font-semibold hover:bg-[#135AF3] cursor-pointer"
+                  >
+                    {t.nav.register}
+                  </button>
+                </>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setAuthModalMode('register');
-                }}
-                className="min-h-[46px] flex-1 px-4 py-3 rounded-xl bg-[#1150EF] text-white font-ui text-sm font-semibold hover:bg-[#135AF3] cursor-pointer"
-              >
-                {t.nav.register}
-              </button>
             </div>
           </div>
         </div>

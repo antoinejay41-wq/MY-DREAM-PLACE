@@ -29,12 +29,12 @@ service cloud.firestore {
     }
 
     function isBootstrappedAdmin() {
-      return isVerifiedEmail() && request.auth.token.email == 'antoinejay41@gmail.com';
+      return isSignedIn() && request.auth.token.email == 'antoinejay41@gmail.com';
     }
 
     function isAuthorizedAdminEmail() {
       return isBootstrappedAdmin() || (
-        isVerifiedEmail() &&
+        isSignedIn() &&
         exists(/databases/$(database)/documents/cms_config/published) &&
         'authorizedAdminEmails' in get(/databases/$(database)/documents/cms_config/published).data.websiteSettings &&
         get(/databases/$(database)/documents/cms_config/published).data.websiteSettings.authorizedAdminEmails is list &&
@@ -244,8 +244,8 @@ service cloud.firestore {
     match /admins/{adminId} {
       allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
       allow list: if isBootstrappedAdmin();
-      allow create: if isSignedIn() && isValidId(adminId) && isValidAdminRecord(incoming()) && incoming().uid == adminId && (request.auth.uid == adminId || isAdmin());
-      allow update: if isSignedIn() && isValidId(adminId) && isValidAdminRecord(incoming()) && incoming().uid == existing().uid && (request.auth.uid == adminId || isAdmin());
+      allow create: if isSignedIn() && isValidId(adminId) && isValidAdminRecord(incoming()) && incoming().uid == adminId && isAdmin();
+      allow update: if isSignedIn() && isValidId(adminId) && isValidAdminRecord(incoming()) && incoming().uid == existing().uid && isAdmin();
       allow delete: if isAdmin() && isValidId(adminId);
     }
 
@@ -259,7 +259,7 @@ service cloud.firestore {
         && (
           isAdmin() || (
             request.auth.uid == userId
-            && incoming().role in ['customer', 'owner', 'agent', 'admin']
+            && incoming().role in ['customer', 'owner', 'agent']
           )
         );
       allow update: if isSignedIn() && isValidId(userId)
@@ -268,7 +268,7 @@ service cloud.firestore {
         && (
           isAdmin() || (
             request.auth.uid == userId
-            && incoming().role in ['customer', 'owner', 'agent', 'admin']
+            && incoming().role in ['customer', 'owner', 'agent']
           )
         );
       allow delete: if isAdmin() && isValidId(userId);

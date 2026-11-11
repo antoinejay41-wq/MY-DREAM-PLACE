@@ -35,8 +35,17 @@ import {
 } from '../utils/locationUtils';
 
 export const ListPropertyPage: React.FC = () => {
-  const { t, currentUser, submitNewProperty, formatPrice, uploadMediaFromDevice } =
-    useMarketplace();
+  const {
+    t,
+    currentUser,
+    firebaseUser,
+    isVerifiedAdmin,
+    setAuthModalMode,
+    showToast,
+    submitNewProperty,
+    formatPrice,
+    uploadMediaFromDevice
+  } = useMarketplace();
 
   const [step, setStep] = useState<number>(1);
   const [submittedProperty, setSubmittedProperty] = useState<Property | null>(null);
@@ -265,6 +274,12 @@ export const ListPropertyPage: React.FC = () => {
   };
 
   const handleFinalSubmit = () => {
+    if (!firebaseUser) {
+      showToast('Please log in or create an Owner / Agent account to submit your property listing.');
+      setAuthModalMode('signin');
+      return;
+    }
+
     const amenities = amenitiesInput
       .split(',')
       .map((s) => s.trim())
@@ -350,12 +365,14 @@ export const ListPropertyPage: React.FC = () => {
               >
                 {t.wizard.viewOwnerStudioBtn}
               </Link>
-              <Link
-                to="/dashboard/admin"
-                className="py-3 px-4 rounded-xl bg-[#1150EF] text-white font-ui text-xs font-bold hover:bg-[#135AF3]"
-              >
-                {t.wizard.approveAdminBtn}
-              </Link>
+              {isVerifiedAdmin && (
+                <Link
+                  to="/dashboard/admin"
+                  className="py-3 px-4 rounded-xl bg-[#1150EF] text-white font-ui text-xs font-bold hover:bg-[#135AF3]"
+                >
+                  {t.wizard.approveAdminBtn}
+                </Link>
+              )}
             </div>
           </div>
         </div>

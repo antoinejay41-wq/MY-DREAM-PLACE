@@ -1650,13 +1650,15 @@ export const INITIAL_WEBSITE_CONTENT: WebsiteContent = {
   announcementBanner:
     'Direct-to-Owner Luxury Real Estate & Event Space Marketplace — Interactive Local Demo',
   showAnnouncementBanner: false,
-  supportEmail: 'concierge@mydreamplace.demo',
-  supportPhone: '+1 (809) 555-0199',
-  whatsappNumber: '18095550199',
+  supportEmail: 'jnscompany916@gmail.com',
+  secondarySupportEmail: 'contact.mc99haiti@gmail.com',
+  supportPhone: '+1 (484) 208-2963',
+  whatsappNumber: '18298508107',
+  whatsappNumbers: ['+1 (829) 850-8107', '+1 (829) 876-8096', '+509 3999-4934'],
   officeAddress: 'Boulevard Turístico & Pétion-Ville Architectural Gallery',
   footerDescription:
-    'Interactive Local Demonstration Mode — All listings, inquiries, approvals, and preferences are stored locally in your browser.',
-  footerCopyrightText: 'All rights reserved. Local Interactive Demo.'
+    'Direct-to-Owner & Licensed Advisory Real Estate Marketplace across the Dominican Republic, Haiti, and the Caribbean.',
+  footerCopyrightText: 'All rights reserved.'
 };
 
 export const INITIAL_BRANDING: BrandingSettings = {
@@ -1726,7 +1728,11 @@ export const INITIAL_WEBSITE_SETTINGS = {
   seoDefaultTitle: 'MY DREAM PLACE — Real Estate | Luxury Residences, Land & Event Spaces',
   seoDefaultDescription:
     "Find the place you've always dreamed of. Discover architectural villas, penthouses, titled land parcels, and private event spaces.",
-  authorizedAdminEmails: ['antoinejay41@gmail.com']
+  authorizedAdminEmails: [
+    'antoinejay41@gmail.com',
+    'jnscompany916@gmail.com',
+    'contact.mc99haiti@gmail.com'
+  ]
 };
 
 export const INITIAL_CUSTOM_TRANSLATIONS = {

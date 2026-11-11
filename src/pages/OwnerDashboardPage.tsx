@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BarChart3,
   Building2,
@@ -8,9 +8,11 @@ import {
   Clock,
   Edit3,
   Eye,
+  LogOut,
   MessageSquare,
   PlusCircle,
   Send,
+  ShieldCheck,
   UserCheck,
   X
 } from 'lucide-react';
@@ -31,6 +33,12 @@ type OwnerTab =
 export const OwnerDashboardPage: React.FC = () => {
   const {
     t,
+    currentUser,
+    firebaseUser,
+    isAuthReady,
+    isVerifiedAdmin,
+    setAuthModalMode,
+    logoutAdminSession,
     properties,
     updateProperty,
     owners,
@@ -44,6 +52,7 @@ export const OwnerDashboardPage: React.FC = () => {
   } = useMarketplace();
 
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<OwnerTab>('overview');
   const [selectedInquiryId, setSelectedInquiryId] = useState<string>(
     inquiries[0]?.id || ''
@@ -67,6 +76,69 @@ export const OwnerDashboardPage: React.FC = () => {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-[70vh] bg-neutral-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-8 max-w-md w-full text-center space-y-3 shadow-sm">
+          <UserCheck className="w-10 h-10 text-[#1150EF] mx-auto animate-pulse" />
+          <h1 className="font-display text-xl text-[#0D0D0D]">
+            Verifying Account Session...
+          </h1>
+          <p className="font-body text-xs text-[#737373]">
+            Loading your Property Owner & Agent workspace.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!firebaseUser) {
+    return (
+      <div className="min-h-[75vh] bg-neutral-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-8 max-w-lg w-full text-center space-y-5 shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-[#1150EF]/10 text-[#1150EF] flex items-center justify-center mx-auto">
+            <UserCheck className="w-7 h-7" />
+          </div>
+          <div className="space-y-2">
+            <span className="px-2.5 py-1 rounded-md bg-[#1150EF]/10 text-[#1150EF] font-ui text-[11px] font-bold uppercase tracking-wider">
+              Owner & Agent Portal
+            </span>
+            <h1 className="font-display text-2xl sm:text-3xl text-[#0D0D0D]">
+              Sign In Required
+            </h1>
+            <p className="font-body text-sm text-[#737373]">
+              Please sign in as a Property Owner, Real Estate Agent, or Administrator to manage your property listings, respond to buyer inquiries, and confirm viewing requests.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setAuthModalMode('signin')}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold cursor-pointer transition-colors"
+            >
+              Log In to Account
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthModalMode('register')}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-[#0D0D0D] font-ui text-xs font-bold cursor-pointer transition-colors"
+            >
+              Create Owner / Agent Account
+            </button>
+          </div>
+          <div className="pt-2 border-t border-neutral-100">
+            <Link
+              to="/"
+              className="font-ui text-xs font-semibold text-[#737373] hover:text-[#1150EF]"
+            >
+              ← Return to Public Marketplace
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const pendingList = properties.filter((p) => p.approvalStatus === 'pending');
   const approvedList = properties.filter((p) => p.approvalStatus === 'approved');
@@ -119,13 +191,17 @@ export const OwnerDashboardPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
               <Logo variant="dashboard" />
               <span className="text-[11px] font-ui font-bold uppercase tracking-wider text-[#1150EF]">
-                {t.nav.ownerAgent}
+                {currentUser.role === 'agent' ? 'Agent' : t.nav.ownerAgent}
               </span>
             </div>
 
             <div>
-              <div className="font-display text-lg text-[#0D0D0D]">{owners[0].name}</div>
-              <div className="font-ui text-xs text-[#737373]">{owners[0].roleTitle}</div>
+              <div className="font-display text-lg text-[#0D0D0D]">
+                {currentUser.name || firebaseUser.displayName || owners[0].name}
+              </div>
+              <div className="font-ui text-xs text-[#737373] truncate">
+                {firebaseUser.email || owners[0].roleTitle}
+              </div>
             </div>
 
             <nav className="flex lg:flex-col gap-1.5 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
@@ -169,12 +245,26 @@ export const OwnerDashboardPage: React.FC = () => {
                 <PlusCircle className="w-4 h-4" />
                 <span>{t.dashboard.addProperty}</span>
               </Link>
-              <Link
-                to="/dashboard/admin"
-                className="block w-full py-2 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-center font-ui text-xs font-semibold"
+              {isVerifiedAdmin && (
+                <Link
+                  to="/admin"
+                  className="w-full py-2 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-ui text-xs font-semibold flex items-center justify-center gap-1.5"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>{t.dashboard.openAdminQueueBtn} ({pendingList.length}) →</span>
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={async () => {
+                  await logoutAdminSession();
+                  navigate('/');
+                }}
+                className="w-full py-2 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-ui text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
-                {t.dashboard.openAdminQueueBtn} ({pendingList.length}) →
-              </Link>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
+              </button>
             </div>
           </aside>
 

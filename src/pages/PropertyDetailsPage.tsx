@@ -49,6 +49,8 @@ export const PropertyDetailsPage: React.FC = () => {
     compareIds,
     toggleCompare,
     currentUser,
+    firebaseUser,
+    isVerifiedAdmin,
     createInquiry,
     createViewingRequest,
     reportProperty,
@@ -56,6 +58,9 @@ export const PropertyDetailsPage: React.FC = () => {
   } = useMarketplace();
 
   const property = properties.find((p) => p.id === id);
+  const canViewUnapproved = Boolean(
+    isVerifiedAdmin || (firebaseUser && property && property.ownerId === firebaseUser.uid)
+  );
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [mediaMode, setMediaMode] = useState<'photos' | 'video' | 'tour360'>('photos');
@@ -297,7 +302,7 @@ export const PropertyDetailsPage: React.FC = () => {
     };
   }, [id, property, schemaOrgData, t.property.defaultInquiryMessage]);
 
-  if (!property) {
+  if (!property || (property.approvalStatus !== 'approved' && !canViewUnapproved)) {
     return (
       <div className="py-20 mdp-container text-center">
         <h1 className="font-display text-3xl text-[#0D0D0D]">{t.property.notFoundTitle}</h1>
@@ -464,12 +469,14 @@ export const PropertyDetailsPage: React.FC = () => {
                 {t.property.moderationBannerText}
               </span>
             </div>
-            <Link
-              to="/dashboard/admin"
-              className="px-3 py-1.5 rounded-lg bg-amber-900 text-white font-ui text-xs font-semibold"
-            >
-              {t.property.reviewInAdminBtn}
-            </Link>
+            {isVerifiedAdmin && (
+              <Link
+                to="/admin"
+                className="px-3 py-1.5 rounded-lg bg-amber-900 text-white font-ui text-xs font-semibold"
+              >
+                {t.property.reviewInAdminBtn}
+              </Link>
+            )}
           </div>
         )}
 

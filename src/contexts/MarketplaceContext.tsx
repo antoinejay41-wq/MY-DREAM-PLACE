@@ -413,9 +413,27 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     loadFromStorage<ListingApproval[]>('approvalQueue', INITIAL_APPROVAL_QUEUE)
   );
 
+  const normalizeWebsiteContent = (raw: WebsiteContent): WebsiteContent => {
+    const isOldDemoEmail = !raw.supportEmail || raw.supportEmail === 'concierge@mydreamplace.demo';
+    const isOldDemoPhone = !raw.supportPhone || raw.supportPhone === '+1 (809) 555-0199';
+    const isOldDemoWa = !raw.whatsappNumber || raw.whatsappNumber === '18095550199';
+    return {
+      ...raw,
+      supportEmail: isOldDemoEmail ? INITIAL_WEBSITE_CONTENT.supportEmail : raw.supportEmail,
+      secondarySupportEmail:
+        raw.secondarySupportEmail || INITIAL_WEBSITE_CONTENT.secondarySupportEmail,
+      supportPhone: isOldDemoPhone ? INITIAL_WEBSITE_CONTENT.supportPhone : raw.supportPhone,
+      whatsappNumber: isOldDemoWa ? INITIAL_WEBSITE_CONTENT.whatsappNumber : raw.whatsappNumber,
+      whatsappNumbers:
+        Array.isArray(raw.whatsappNumbers) && raw.whatsappNumbers.length > 0
+          ? raw.whatsappNumbers
+          : INITIAL_WEBSITE_CONTENT.whatsappNumbers
+    };
+  };
+
   // Published CMS States
   const [publishedWebsiteContent, setPublishedWebsiteContent] = useState<WebsiteContent>(() =>
-    loadFromStorage<WebsiteContent>('websiteContent', INITIAL_WEBSITE_CONTENT)
+    normalizeWebsiteContent(loadFromStorage<WebsiteContent>('websiteContent', INITIAL_WEBSITE_CONTENT))
   );
   const [publishedBranding, setPublishedBranding] = useState<BrandingSettings>(() =>
     loadFromStorage<BrandingSettings>('branding', INITIAL_BRANDING)
@@ -433,7 +451,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Draft CMS States
   const [draftWebsiteContent, setDraftWebsiteContent] = useState<WebsiteContent>(() =>
-    loadFromStorage<WebsiteContent>('draftWebsiteContent', publishedWebsiteContent)
+    normalizeWebsiteContent(loadFromStorage<WebsiteContent>('draftWebsiteContent', publishedWebsiteContent))
   );
   const [draftBranding, setDraftBranding] = useState<BrandingSettings>(() =>
     loadFromStorage<BrandingSettings>('draftBranding', publishedBranding)
@@ -478,8 +496,14 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const normalized = rawList
       .map((e) => String(e || '').trim().toLowerCase())
       .filter(Boolean);
-    if (!normalized.includes(BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase())) {
-      normalized.unshift(BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase());
+    for (const defaultAdmin of [
+      BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase(),
+      'jnscompany916@gmail.com',
+      'contact.mc99haiti@gmail.com'
+    ]) {
+      if (!normalized.includes(defaultAdmin)) {
+        normalized.push(defaultAdmin);
+      }
     }
     return Array.from(new Set(normalized));
   }, [
@@ -494,18 +518,23 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setFirebaseUser(fbUser);
       if (!fbUser) {
         setIsVerifiedAdmin(false);
+        setActiveRoleState('customer');
+        setCurrentUser((prev) => ({
+          ...prev,
+          role: 'customer',
+          verified: false
+        }));
         setIsAuthReady(true);
         return;
       }
 
       const normalizedUserEmail = (fbUser.email || '').trim().toLowerCase();
       const isBootstrapAdmin =
-        normalizedUserEmail === BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase() &&
-        fbUser.emailVerified;
+        normalizedUserEmail === BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase();
 
       // Also check if user email is in published cms_config authorizedAdminEmails
       let isAuthorizedByEmailList = authorizedAdminEmails.includes(normalizedUserEmail);
-      if (!isAuthorizedByEmailList && fbUser.emailVerified) {
+      if (!isAuthorizedByEmailList && normalizedUserEmail) {
         try {
           const cmsSnap = await getDoc(doc(db, 'cms_config', 'published'));
           if (cmsSnap.exists()) {
@@ -526,9 +555,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       }
 
-      let adminStatus = Boolean(
-        fbUser.emailVerified && (isBootstrapAdmin || isAuthorizedByEmailList)
-      );
+      let adminStatus = Boolean(isBootstrapAdmin || isAuthorizedByEmailList);
       try {
         const adminDocRef = doc(db, 'admins', fbUser.uid);
         const adminSnap = await getDoc(adminDocRef);
@@ -554,9 +581,12 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
           const data = userSnap.data() as Partial<User> & { favorites?: string[] };
+          const storedRole = (data.role as UserRole) || 'customer';
           const resolvedRole: UserRole = adminStatus
             ? 'admin'
-            : (data.role as UserRole) || 'customer';
+            : storedRole === 'admin'
+              ? 'customer'
+              : storedRole;
           setCurrentUser((prev) => ({
             ...prev,
             id: fbUser.uid,
@@ -576,7 +606,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
           const initialRole: UserRole = adminStatus ? 'admin' : 'customer';
           const newProfile = sanitizeForFirestore({
             id: fbUser.uid,
-            name: (fbUser.displayName || 'Verified Member').slice(0, 120),
+            name: (fbUser.displayName || normalizedUserEmail.split('@')[0] || 'Verified Member').slice(0, 120),
             email: (fbUser.email || 'user@example.com').slice(0, 254),
             phone: currentUser.phone ? currentUser.phone.slice(0, 40) : '',
             role: initialRole,
@@ -591,7 +621,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
           setCurrentUser((prev) => ({
             ...prev,
             id: fbUser.uid,
-            name: fbUser.displayName || prev.name,
+            name: fbUser.displayName || normalizedUserEmail.split('@')[0] || prev.name,
             email: fbUser.email || prev.email,
             role: initialRole,
             verified: true
@@ -610,7 +640,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Re-evaluate admin status if authorizedAdminEmails changes while signed in
   useEffect(() => {
-    if (!firebaseUser || !firebaseUser.emailVerified) return;
+    if (!firebaseUser) return;
     const emailLower = (firebaseUser.email || '').trim().toLowerCase();
     if (authorizedAdminEmails.includes(emailLower) && !isVerifiedAdmin) {
       setIsVerifiedAdmin(true);
@@ -635,7 +665,9 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setIsCloudConnected(true);
         if (snap.exists()) {
           const data = snap.data();
-          if (data.websiteContent) setPublishedWebsiteContent(data.websiteContent as WebsiteContent);
+          if (data.websiteContent) {
+            setPublishedWebsiteContent(normalizeWebsiteContent(data.websiteContent as WebsiteContent));
+          }
           if (data.branding) setPublishedBranding(data.branding as BrandingSettings);
           if (data.navigationConfig) {
             setPublishedNavigationConfig(data.navigationConfig as NavigationConfig);
@@ -654,15 +686,12 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     );
     unsubscribers.push(unsubPublishedCms);
 
-    const canListAllPropertiesAsAdmin = Boolean(
-      firebaseUser && isVerifiedAdmin && firebaseUser.emailVerified
-    );
+    const canListAllPropertiesAsAdmin = Boolean(firebaseUser && isVerifiedAdmin);
 
     const canListAllInquiriesAsBootstrapAdmin = Boolean(
       firebaseUser &&
         isVerifiedAdmin &&
-        firebaseUser.email === BOOTSTRAPPED_ADMIN_EMAIL &&
-        firebaseUser.emailVerified
+        firebaseUser.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase()
     );
 
     // B. Properties Listener (Admin reads all; Public/Visitor queries approved; Owner also queries own)
@@ -817,6 +846,44 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
           (error) => handleFirestoreError(error, OperationType.LIST, viewingsPath)
         );
         unsubscribers.push(unsubCustView);
+
+        const ownerInqQuery = query(
+          collection(db, 'inquiries'),
+          where('ownerId', '==', firebaseUser.uid)
+        );
+        const unsubOwnerInq = onSnapshot(
+          ownerInqQuery,
+          (snap) => {
+            if (!snap.empty) {
+              const remote = snap.docs.map((d) => ({ ...(d.data() as Inquiry), id: d.id }));
+              setInquiries((prev) => {
+                const remoteIds = new Set(remote.map((r) => r.id));
+                return [...remote, ...prev.filter((i) => !remoteIds.has(i.id))];
+              });
+            }
+          },
+          (error) => handleFirestoreError(error, OperationType.LIST, inquiriesPath)
+        );
+        unsubscribers.push(unsubOwnerInq);
+
+        const ownerViewQuery = query(
+          collection(db, 'viewing_requests'),
+          where('ownerId', '==', firebaseUser.uid)
+        );
+        const unsubOwnerView = onSnapshot(
+          ownerViewQuery,
+          (snap) => {
+            if (!snap.empty) {
+              const remote = snap.docs.map((d) => ({ ...(d.data() as ViewingRequest), id: d.id }));
+              setViewingRequests((prev) => {
+                const remoteIds = new Set(remote.map((r) => r.id));
+                return [...remote, ...prev.filter((v) => !remoteIds.has(v.id))];
+              });
+            }
+          },
+          (error) => handleFirestoreError(error, OperationType.LIST, viewingsPath)
+        );
+        unsubscribers.push(unsubOwnerView);
       }
     }
 
@@ -1014,6 +1081,11 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const setActiveRole = (role: UserRole) => {
+    if (role === 'admin' && (!firebaseUser || !isVerifiedAdmin)) {
+      showToast('Administrator sign-in is required to access Admin privileges.');
+      setAuthModalMode('signin');
+      return;
+    }
     setActiveRoleState(role);
     setCurrentUser((prev) => ({ ...prev, role }));
   };
@@ -1214,9 +1286,28 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const updateWebsiteContent = (patch: Partial<WebsiteContent>) => {
+    const nextContent = { ...publishedWebsiteContent, ...patch };
     setDraftWebsiteContent((prev) => ({ ...prev, ...patch }));
-    setPublishedWebsiteContent((prev) => ({ ...prev, ...patch }));
-    showToast('Website content updated');
+    setPublishedWebsiteContent(nextContent);
+
+    if (firebaseUser && isVerifiedAdmin) {
+      const pubPath = 'cms_config/published';
+      setDoc(
+        doc(db, 'cms_config', 'published'),
+        sanitizeForFirestore({
+          id: 'published',
+          websiteContent: nextContent,
+          branding: publishedBranding,
+          navigationConfig: publishedNavigationConfig,
+          websiteSettings: publishedWebsiteSettings,
+          customTranslations: publishedCustomTranslations,
+          updatedBy: firebaseUser.uid,
+          updatedAt: serverTimestamp()
+        })
+      ).catch((error) => handleFirestoreError(error, OperationType.WRITE, pubPath));
+    }
+
+    showToast('Website contact & content updated live');
   };
 
   const updateBranding = (patch: Partial<BrandingSettings>) => {
@@ -2105,10 +2196,16 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const updateCurrentUser = (patch: Partial<User>) => {
-    const nextUser = { ...currentUser, ...patch };
+    const safeRole: UserRole =
+      patch.role === 'admin' && !isVerifiedAdmin
+        ? currentUser.role === 'admin'
+          ? 'customer'
+          : currentUser.role
+        : patch.role || currentUser.role || 'customer';
+    const nextUser = { ...currentUser, ...patch, role: safeRole };
     setCurrentUser(nextUser);
     setCustomers((prev) =>
-      prev.map((c) => (c.id === currentUser.id ? { ...c, ...patch } : c))
+      prev.map((c) => (c.id === currentUser.id ? { ...c, ...patch, role: safeRole } : c))
     );
 
     if (firebaseUser) {
@@ -2120,7 +2217,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
           name: (nextUser.name || firebaseUser.displayName || 'Member').slice(0, 120),
           email: (nextUser.email || firebaseUser.email || 'user@example.com').slice(0, 254),
           phone: (nextUser.phone || '').slice(0, 40),
-          role: isVerifiedAdmin ? 'admin' : currentUser.role || 'customer',
+          role: isVerifiedAdmin && safeRole === 'admin' ? 'admin' : safeRole === 'admin' ? 'customer' : safeRole,
           preferredLanguage: nextUser.preferredLanguage || language,
           preferredCurrency: nextUser.preferredCurrency || currency,
           favorites: favorites.slice(0, 100),

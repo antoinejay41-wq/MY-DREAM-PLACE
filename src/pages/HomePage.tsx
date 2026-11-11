@@ -884,6 +884,83 @@ export const HomePage: React.FC = () => {
               </Link>
             </div>
           </div>
+
+          {/* Direct Contact Website Admin for Services Bar */}
+          <div className="mdp-container mt-10 pt-8 border-t border-white/20">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* USA Call */}
+              <div className="p-4 rounded-2xl bg-black/25 backdrop-blur-xs border border-white/15">
+                <span className="block font-ui text-[10px] font-bold uppercase tracking-widest text-[#B9CFFD]">
+                  Call Admin (From USA)
+                </span>
+                <a
+                  href={`tel:${(websiteContent.supportPhone || '+14842082963').replace(/[^+\d]/g, '')}`}
+                  className="mt-1.5 inline-flex items-center gap-2 font-ui text-base font-bold text-white hover:text-[#B9CFFD] transition-colors"
+                >
+                  <span>{websiteContent.supportPhone || '+1 (484) 208-2963'}</span>
+                </a>
+              </div>
+
+              {/* WhatsApp Direct Lines */}
+              <div className="p-4 rounded-2xl bg-black/25 backdrop-blur-xs border border-white/15">
+                <span className="block font-ui text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+                  WhatsApp Direct (Admin Services)
+                </span>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {(
+                    websiteContent.whatsappNumbers && websiteContent.whatsappNumbers.length > 0
+                      ? websiteContent.whatsappNumbers
+                      : ['+1 (829) 850-8107', '+1 (829) 876-8096', '+509 3999-4934']
+                  ).map((waDisplay) => {
+                    const digitsOnly = waDisplay.replace(/\D/g, '');
+                    const waDigits =
+                      digitsOnly.length === 10 &&
+                      (digitsOnly.startsWith('809') ||
+                        digitsOnly.startsWith('829') ||
+                        digitsOnly.startsWith('849'))
+                        ? `1${digitsOnly}`
+                        : digitsOnly;
+                    return (
+                      <a
+                        key={waDisplay}
+                        href={`https://wa.me/${waDigits}?text=${encodeURIComponent(
+                          'Hello MY DREAM PLACE Admin, I would like to inquire about your real estate services.'
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-300/30 font-ui text-xs font-semibold text-white transition-colors"
+                      >
+                        {waDisplay}
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Email Admin for Services */}
+              <div className="p-4 rounded-2xl bg-black/25 backdrop-blur-xs border border-white/15">
+                <span className="block font-ui text-[10px] font-bold uppercase tracking-widest text-[#B9CFFD]">
+                  Email Admin for Services
+                </span>
+                <div className="mt-1.5 space-y-1">
+                  <a
+                    href={`mailto:${websiteContent.supportEmail || 'jnscompany916@gmail.com'}`}
+                    className="block font-ui text-xs font-semibold text-white hover:text-[#B9CFFD] break-all transition-colors"
+                  >
+                    {websiteContent.supportEmail || 'jnscompany916@gmail.com'}
+                  </a>
+                  {(websiteContent.secondarySupportEmail || 'contact.mc99haiti@gmail.com') && (
+                    <a
+                      href={`mailto:${websiteContent.secondarySupportEmail || 'contact.mc99haiti@gmail.com'}`}
+                      className="block font-ui text-xs font-semibold text-white/90 hover:text-[#B9CFFD] break-all transition-colors"
+                    >
+                      {websiteContent.secondarySupportEmail || 'contact.mc99haiti@gmail.com'}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       )}
     </div>

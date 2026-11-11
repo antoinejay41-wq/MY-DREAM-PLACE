@@ -921,45 +921,103 @@ export const AdminWebsiteEditorSection: React.FC = () => {
       {/* SUB-TAB 5: CONTACT, ANNOUNCEMENT & FOOTER */}
       {activeSubTab === 'contact_footer' && (
         <div className="bg-white rounded-2xl border border-neutral-200 p-6 space-y-5">
-          <h3 className="font-display text-xl text-[#0D0D0D]">
-            Contact Information, Owner CTA Banner & Footer Content
-          </h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display text-xl text-[#0D0D0D]">
+                Admin Contact Information, WhatsApp Numbers & Footer Content
+              </h3>
+              <p className="font-body text-xs text-[#737373] mt-0.5">
+                Update the official phone number, WhatsApp lines, and service emails displayed to visitors across the website.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={publishDraftChanges}
+              className="px-4 py-2 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold cursor-pointer transition-colors"
+            >
+              Save & Publish Contact Info Live
+            </button>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
-                Concierge / Support Email
+                Primary Admin / Services Email
               </label>
               <input
                 type="email"
                 value={draftWebsiteContent.supportEmail}
                 onChange={(e) => updateDraftWebsiteContent({ supportEmail: e.target.value })}
+                placeholder="jnscompany916@gmail.com"
                 className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-body"
               />
             </div>
             <div>
               <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
-                Support Phone Number
+                Secondary Admin / Services Email
+              </label>
+              <input
+                type="email"
+                value={draftWebsiteContent.secondarySupportEmail || ''}
+                onChange={(e) =>
+                  updateDraftWebsiteContent({ secondarySupportEmail: e.target.value })
+                }
+                placeholder="contact.mc99haiti@gmail.com"
+                className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-body"
+              />
+            </div>
+            <div>
+              <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                Call From USA Phone Number
               </label>
               <input
                 type="text"
                 value={draftWebsiteContent.supportPhone}
                 onChange={(e) => updateDraftWebsiteContent({ supportPhone: e.target.value })}
+                placeholder="+1 (484) 208-2963"
                 className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-body"
               />
             </div>
             <div>
               <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
-                WhatsApp Direct Number
+                Primary WhatsApp Number (Digits with Country Code)
               </label>
               <input
                 type="text"
                 value={draftWebsiteContent.whatsappNumber}
                 onChange={(e) => updateDraftWebsiteContent({ whatsappNumber: e.target.value })}
+                placeholder="18298508107"
                 className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-body"
               />
             </div>
-            <div>
+            <div className="md:col-span-2">
+              <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
+                All WhatsApp Numbers (Comma-separated — displayed in Footer & Contact Cards)
+              </label>
+              <input
+                type="text"
+                value={(
+                  draftWebsiteContent.whatsappNumbers || [
+                    '+1 (829) 850-8107',
+                    '+1 (829) 876-8096',
+                    '+509 3999-4934'
+                  ]
+                ).join(', ')}
+                onChange={(e) => {
+                  const list = e.target.value
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  updateDraftWebsiteContent({
+                    whatsappNumbers: list,
+                    ...(list[0] ? { whatsappNumber: list[0].replace(/\D/g, '') } : {})
+                  });
+                }}
+                placeholder="+1 (829) 850-8107, +1 (829) 876-8096, +509 3999-4934"
+                className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-body"
+              />
+            </div>
+            <div className="md:col-span-2">
               <label className="block font-ui text-xs font-semibold text-[#161616] mb-1">
                 Office / Gallery Address
               </label>

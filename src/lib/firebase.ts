@@ -6,6 +6,7 @@ import {
   createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -126,7 +127,7 @@ export async function signInWithEmail(
   email: string,
   password: string
 ): Promise<FirebaseUser> {
-  const credential = await signInWithEmailAndPassword(auth, email, password);
+  const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
   return credential.user;
 }
 
@@ -135,11 +136,52 @@ export async function registerWithEmail(
   password: string,
   displayName?: string
 ): Promise<FirebaseUser> {
-  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
   if (displayName && credential.user) {
-    await updateProfile(credential.user, { displayName });
+    await updateProfile(credential.user, { displayName: displayName.trim() });
   }
   return credential.user;
+}
+
+export async function sendPasswordReset(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email.trim());
+}
+
+export function formatFirebaseAuthError(error: unknown): string {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code)
+      : '';
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (
+    code === 'auth/invalid-credential' ||
+    code === 'auth/wrong-password' ||
+    code === 'auth/user-not-found' ||
+    message.includes('auth/invalid-credential') ||
+    message.includes('auth/wrong-password')
+  ) {
+    return 'Incorrect email or password. Please verify your password, use "Forgot password?" to reset it, or click Google above if your account uses Google Sign-In.';
+  }
+  if (code === 'auth/email-already-in-use' || message.includes('auth/email-already-in-use')) {
+    return 'An account with this email already exists. Please log in with your password or click "Forgot password?" to reset it.';
+  }
+  if (code === 'auth/weak-password' || message.includes('auth/weak-password')) {
+    return 'Password is too weak. Please enter at least 6 characters.';
+  }
+  if (code === 'auth/invalid-email' || message.includes('auth/invalid-email')) {
+    return 'Please enter a valid email address.';
+  }
+  if (code === 'auth/too-many-requests' || message.includes('auth/too-many-requests')) {
+    return 'Too many failed attempts. Please wait a moment or reset your password.';
+  }
+  if (code === 'auth/operation-not-allowed' || message.includes('auth/operation-not-allowed')) {
+    return 'Email & Password sign-in is not enabled for this provider yet, or your account uses Google Sign-In. Please click the Google button above to sign in securely.';
+  }
+  if (code === 'auth/popup-closed-by-user' || message.includes('auth/popup-closed-by-user')) {
+    return 'Sign-in window was closed before completing authentication.';
+  }
+  return 'Authentication failed. Please check your credentials and try again.';
 }
 
 export async function signOutFromFirebase(): Promise<void> {

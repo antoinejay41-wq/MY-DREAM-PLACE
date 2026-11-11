@@ -244,8 +244,10 @@ export interface WebsiteContent {
   announcementBanner: string;
   showAnnouncementBanner: boolean;
   supportEmail: string;
+  secondarySupportEmail?: string;
   supportPhone: string;
   whatsappNumber: string;
+  whatsappNumbers?: string[];
   officeAddress: string;
   footerDescription: string;
   footerCopyrightText: string;

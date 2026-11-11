@@ -8,6 +8,7 @@ import {
   CheckCheck,
   Globe,
   Heart,
+  LogOut,
   MessageSquare,
   Send,
   Trash2,
@@ -36,6 +37,10 @@ export const CustomerDashboardPage: React.FC = () => {
     setCurrency,
     currentUser,
     updateCurrentUser,
+    firebaseUser,
+    isAuthReady,
+    setAuthModalMode,
+    logoutAdminSession,
     properties,
     favorites,
     savedSearches,
@@ -83,6 +88,69 @@ export const CustomerDashboardPage: React.FC = () => {
     }
   }, [searchParams]);
 
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-[70vh] bg-neutral-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-8 max-w-md w-full text-center space-y-3 shadow-sm">
+          <User className="w-10 h-10 text-[#1150EF] mx-auto animate-pulse" />
+          <h1 className="font-display text-xl text-[#0D0D0D]">
+            Verifying Account Session...
+          </h1>
+          <p className="font-body text-xs text-[#737373]">
+            Loading your Buyer & Renter dashboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!firebaseUser) {
+    return (
+      <div className="min-h-[75vh] bg-neutral-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-neutral-200 p-8 max-w-lg w-full text-center space-y-5 shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-[#1150EF]/10 text-[#1150EF] flex items-center justify-center mx-auto">
+            <User className="w-7 h-7" />
+          </div>
+          <div className="space-y-2">
+            <span className="px-2.5 py-1 rounded-md bg-[#1150EF]/10 text-[#1150EF] font-ui text-[11px] font-bold uppercase tracking-wider">
+              Buyer & Renter Account
+            </span>
+            <h1 className="font-display text-2xl sm:text-3xl text-[#0D0D0D]">
+              Sign In Required
+            </h1>
+            <p className="font-body text-sm text-[#737373]">
+              Please log in or create an account to access your saved properties, saved searches, owner messages, and scheduled property viewings.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setAuthModalMode('signin')}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold cursor-pointer transition-colors"
+            >
+              Log In to Account
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthModalMode('register')}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-[#0D0D0D] font-ui text-xs font-bold cursor-pointer transition-colors"
+            >
+              Create Account
+            </button>
+          </div>
+          <div className="pt-2 border-t border-neutral-100">
+            <Link
+              to="/"
+              className="font-ui text-xs font-semibold text-[#737373] hover:text-[#1150EF]"
+            >
+              ← Return to Public Marketplace
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const favoriteProperties = properties.filter((p) => favorites.includes(p.id));
   const activeInquiry =
     inquiries.find((i) => i.id === selectedInquiryId) || inquiries[0];
@@ -116,13 +184,17 @@ export const CustomerDashboardPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
               <Logo variant="dashboard" />
               <span className="text-[11px] font-ui font-bold uppercase tracking-wider text-[#1150EF]">
-                Customer
+                Buyer / Renter
               </span>
             </div>
 
             <div>
-              <div className="font-display text-lg text-[#0D0D0D]">{currentUser.name}</div>
-              <div className="font-ui text-xs text-[#737373] truncate">{currentUser.email}</div>
+              <div className="font-display text-lg text-[#0D0D0D]">
+                {currentUser.name || firebaseUser.displayName || 'Verified Member'}
+              </div>
+              <div className="font-ui text-xs text-[#737373] truncate">
+                {firebaseUser.email || currentUser.email}
+              </div>
             </div>
 
             <nav className="flex lg:flex-col gap-1.5 overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
@@ -165,6 +237,17 @@ export const CustomerDashboardPage: React.FC = () => {
               >
                 {t.dashboard.switchToOwnerBtn}
               </Link>
+              <button
+                type="button"
+                onClick={async () => {
+                  await logoutAdminSession();
+                  navigate('/');
+                }}
+                className="w-full py-2 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-ui text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
+              </button>
             </div>
           </aside>
 
