@@ -1,14 +1,18 @@
-import { initializeApp } from 'firebase/app';
+import { getApps, initializeApp } from 'firebase/app';
 import {
   GoogleAuthProvider,
   OAuthProvider,
   User as FirebaseUser,
+  browserLocalPersistence,
   createUserWithEmailAndPassword,
   getAuth,
+  getRedirectResult,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile
 } from 'firebase/auth';
@@ -26,13 +30,43 @@ import {
   ref as storageRef,
   uploadBytes
 } from 'firebase/storage';
-import firebaseConfig from '../firebase-applet-config.json';
+import firebaseAppletConfig from '../../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
+const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {};
 
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const resolvedFirebaseConfig = {
+  apiKey: (env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey || '').trim(),
+  authDomain: (env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain || '').trim(),
+  projectId: (env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId || '').trim(),
+  storageBucket: (
+    env.VITE_FIREBASE_STORAGE_BUCKET ||
+    firebaseAppletConfig.storageBucket ||
+    ''
+  ).trim(),
+  messagingSenderId: (
+    env.VITE_FIREBASE_MESSAGING_SENDER_ID ||
+    firebaseAppletConfig.messagingSenderId ||
+    ''
+  ).trim(),
+  appId: (env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId || '').trim(),
+  firestoreDatabaseId: (
+    env.VITE_FIREBASE_DATABASE_ID ||
+    firebaseAppletConfig.firestoreDatabaseId ||
+    '(default)'
+  ).trim()
+};
+
+const app =
+  getApps().length > 0 ? getApps()[0] : initializeApp(resolvedFirebaseConfig);
+
+export const db = getFirestore(app, resolvedFirebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
+// Ensure auth state persists across page reloads and OAuth redirects in production
+setPersistence(auth, browserLocalPersistence).catch((err) => {
+  console.warn('Firebase Auth persistence warning:', err);
+});
 
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -59,7 +93,7 @@ export interface FirestoreErrorInfo {
     email?: string | null;
     emailVerified?: boolean | null;
     isAnonymous?: boolean | null;
-    tenantId?: string | null;
+    tenantId?: boolean | string | null;
     providerInfo?: {
       providerId?: string | null;
       email?: string | null;
@@ -113,14 +147,61 @@ export async function testConnection(): Promise<boolean> {
 // Execute boot connection check immediately
 testConnection();
 
+export function extractFirebaseErrorCode(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const rawCode = String((error as { code?: unknown }).code || '');
+    if (rawCode) return rawCode;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  const match = message.match(/\((auth\/[^)]+)\)/);
+  if (match && match[1]) {
+    return match[1];
+  }
+  if (message.includes('API_KEY_HTTP_REFERRER_BLOCKED') || message.includes('requests-from-referer')) {
+    return 'auth/requests-from-referer-blocked';
+  }
+  if (message.includes('CONFIGURATION_NOT_FOUND')) {
+    return 'auth/configuration-not-found';
+  }
+  return 'auth/unknown-error';
+}
+
 export async function signInWithGooglePopup(): Promise<FirebaseUser> {
-  const credential = await signInWithPopup(auth, googleProvider);
-  return credential.user;
+  try {
+    const credential = await signInWithPopup(auth, googleProvider);
+    return credential.user;
+  } catch (error) {
+    const code = extractFirebaseErrorCode(error);
+    if (code === 'auth/popup-blocked') {
+      await signInWithRedirect(auth, googleProvider);
+      throw new Error('Redirecting to Google Sign-In... (auth/popup-blocked)');
+    }
+    throw error;
+  }
 }
 
 export async function signInWithApplePopup(): Promise<FirebaseUser> {
-  const credential = await signInWithPopup(auth, appleProvider);
-  return credential.user;
+  try {
+    const credential = await signInWithPopup(auth, appleProvider);
+    return credential.user;
+  } catch (error) {
+    const code = extractFirebaseErrorCode(error);
+    if (code === 'auth/popup-blocked') {
+      await signInWithRedirect(auth, appleProvider);
+      throw new Error('Redirecting to Apple Sign-In... (auth/popup-blocked)');
+    }
+    throw error;
+  }
+}
+
+export async function checkRedirectSignInResult(): Promise<FirebaseUser | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    return result?.user || null;
+  } catch (error) {
+    console.error('[Firebase Redirect Auth Error]', error);
+    return null;
+  }
 }
 
 export async function signInWithEmail(
@@ -148,12 +229,44 @@ export async function sendPasswordReset(email: string): Promise<void> {
 }
 
 export function formatFirebaseAuthError(error: unknown): string {
-  const code =
-    typeof error === 'object' && error !== null && 'code' in error
-      ? String((error as { code?: unknown }).code)
-      : '';
+  const code = extractFirebaseErrorCode(error);
   const message = error instanceof Error ? error.message : String(error);
+  const currentHost =
+    typeof window !== 'undefined' ? window.location.hostname : 'your Vercel domain';
 
+  console.error('[Firebase Auth Diagnostic]', {
+    code,
+    message,
+    host: currentHost,
+    projectId: resolvedFirebaseConfig.projectId,
+    authDomain: resolvedFirebaseConfig.authDomain
+  });
+
+  if (code === 'auth/unauthorized-domain' || message.includes('auth/unauthorized-domain')) {
+    return `Domain not authorized in Firebase (${currentHost}). Add "${currentHost}" in Firebase Console → Authentication → Settings → Authorized domains. [Code: ${code}]`;
+  }
+  if (
+    code === 'auth/requests-from-referer-blocked' ||
+    message.includes('API_KEY_HTTP_REFERRER_BLOCKED') ||
+    message.includes('requests-from-referer')
+  ) {
+    return `Firebase API Key HTTP Referrer restriction blocked "${currentHost}". Allow "https://${currentHost}/*" in Google Cloud Console → APIs & Services → Credentials. [Code: ${code}]`;
+  }
+  if (
+    code === 'auth/api-key-not-valid' ||
+    code === 'auth/invalid-api-key' ||
+    message.includes('api-key-not-valid')
+  ) {
+    return `Invalid or missing Firebase API Key in production environment variables. Check VITE_FIREBASE_API_KEY in Vercel. [Code: ${code}]`;
+  }
+  if (
+    code === 'auth/operation-not-allowed' ||
+    code === 'auth/configuration-not-found' ||
+    message.includes('auth/operation-not-allowed') ||
+    message.includes('CONFIGURATION_NOT_FOUND')
+  ) {
+    return `This sign-in provider is not enabled yet in Firebase Console. Enable both "Google" and "Email/Password" in Firebase Console → Authentication → Sign-in method. [Code: ${code}]`;
+  }
   if (
     code === 'auth/invalid-credential' ||
     code === 'auth/wrong-password' ||
@@ -161,27 +274,35 @@ export function formatFirebaseAuthError(error: unknown): string {
     message.includes('auth/invalid-credential') ||
     message.includes('auth/wrong-password')
   ) {
-    return 'Incorrect email or password. Please verify your password, use "Forgot password?" to reset it, or click Google above if your account uses Google Sign-In.';
+    return `Incorrect email or password (or this email has not set a password yet). Use "Create Account" if registering for the first time, click "Forgot password?" to set a password, or sign in with Google. [Code: ${code}]`;
   }
   if (code === 'auth/email-already-in-use' || message.includes('auth/email-already-in-use')) {
-    return 'An account with this email already exists. Please log in with your password or click "Forgot password?" to reset it.';
+    return `An account with this email already exists. Switch to "Log In" or click "Forgot password?" to reset your password. [Code: ${code}]`;
   }
   if (code === 'auth/weak-password' || message.includes('auth/weak-password')) {
-    return 'Password is too weak. Please enter at least 6 characters.';
+    return `Password is too weak. Please enter at least 6 characters. [Code: ${code}]`;
   }
   if (code === 'auth/invalid-email' || message.includes('auth/invalid-email')) {
-    return 'Please enter a valid email address.';
+    return `Please enter a valid email address. [Code: ${code}]`;
   }
   if (code === 'auth/too-many-requests' || message.includes('auth/too-many-requests')) {
-    return 'Too many failed attempts. Please wait a moment or reset your password.';
+    return `Too many failed attempts. Please wait a moment or reset your password. [Code: ${code}]`;
   }
-  if (code === 'auth/operation-not-allowed' || message.includes('auth/operation-not-allowed')) {
-    return 'Email & Password sign-in is not enabled for this provider yet, or your account uses Google Sign-In. Please click the Google button above to sign in securely.';
+  if (
+    code === 'auth/popup-closed-by-user' ||
+    code === 'auth/cancelled-popup-request' ||
+    message.includes('auth/popup-closed-by-user')
+  ) {
+    return `Sign-in popup window was closed before completing authentication. [Code: ${code}]`;
   }
-  if (code === 'auth/popup-closed-by-user' || message.includes('auth/popup-closed-by-user')) {
-    return 'Sign-in window was closed before completing authentication.';
+  if (code === 'auth/popup-blocked' || message.includes('auth/popup-blocked')) {
+    return `Popup was blocked by your browser. Redirecting to sign-in page... [Code: ${code}]`;
   }
-  return 'Authentication failed. Please check your credentials and try again.';
+  if (code === 'auth/network-request-failed' || message.includes('auth/network-request-failed')) {
+    return `Network request to Firebase Auth failed from "${currentHost}". Verify your internet connection, ad-blocker settings, and API Key referrer restrictions. [Code: ${code}]`;
+  }
+
+  return `Authentication failed: ${message} [Code: ${code}]`;
 }
 
 export async function signOutFromFirebase(): Promise<void> {

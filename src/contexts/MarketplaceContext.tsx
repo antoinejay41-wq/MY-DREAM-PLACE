@@ -65,8 +65,10 @@ import {
 import {
   auth,
   BOOTSTRAPPED_ADMIN_EMAIL,
+  checkRedirectSignInResult,
   db,
   FirebaseUser,
+  formatFirebaseAuthError,
   handleFirestoreError,
   onAuthStateChanged,
   OperationType,
@@ -514,6 +516,8 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // 1. FIREBASE AUTHENTICATION & USER PROFILE LIFECYCLE
   // ---------------------------------------------------------------------------
   useEffect(() => {
+    checkRedirectSignInResult().catch(() => {});
+
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (!fbUser) {
@@ -899,11 +903,7 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
       showToast(`Signed in as ${user.displayName || user.email}`);
       setAuthModalMode(null);
     } catch (error) {
-      showToast(
-        error instanceof Error
-          ? `Google Sign-In did not complete: ${error.message}`
-          : 'Google Sign-In was cancelled.'
-      );
+      showToast(formatFirebaseAuthError(error));
     }
   };
 
