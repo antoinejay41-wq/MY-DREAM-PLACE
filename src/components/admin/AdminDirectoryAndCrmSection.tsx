@@ -15,7 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { useMarketplace } from '../../contexts/MarketplaceContext';
-import { Owner, User } from '../../types';
+import { Owner, User, UserRole } from '../../types';
 
 interface AdminDirectoryAndCrmSectionProps {
   mode: 'owners' | 'customers' | 'inquiries' | 'viewings';
@@ -32,6 +32,9 @@ export const AdminDirectoryAndCrmSection: React.FC<
     messages,
     viewingRequests,
     properties,
+    authorizedAdminEmails,
+    addAdminByEmail,
+    removeAdminByEmail,
     updateOwner,
     addOwner,
     deleteOwner,
@@ -53,13 +56,18 @@ export const AdminDirectoryAndCrmSection: React.FC<
   const [ownerPhone, setOwnerPhone] = useState('');
   const [ownerBio, setOwnerBio] = useState('');
 
-  // Customers state
+  // Customers & Admins state
   const [editingCustomer, setEditingCustomer] = useState<User | null>(null);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [custName, setCustName] = useState('');
   const [custEmail, setCustEmail] = useState('');
   const [custPhone, setCustPhone] = useState('');
+  const [custRole, setCustRole] = useState<UserRole>('customer');
   const [custBio, setCustBio] = useState('');
+
+  // Quick Add Admin state
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
 
   // Inquiries state
   const [selectedInquiryId, setSelectedInquiryId] = useState<string>(
@@ -111,7 +119,7 @@ export const AdminDirectoryAndCrmSection: React.FC<
         name: custName.trim(),
         email: custEmail.trim() || 'client@example.com',
         phone: custPhone.trim() || '+1 (305) 555-0199',
-        role: 'customer',
+        role: custRole,
         preferredLanguage: 'en',
         preferredCurrency: 'USD',
         verified: true,
@@ -123,6 +131,7 @@ export const AdminDirectoryAndCrmSection: React.FC<
         name: custName.trim(),
         email: custEmail.trim(),
         phone: custPhone.trim(),
+        role: custRole,
         bio: custBio.trim()
       });
       setEditingCustomer(null);
@@ -344,101 +353,236 @@ export const AdminDirectoryAndCrmSection: React.FC<
     );
   }
 
-  // MODE 8: CUSTOMERS
+  // MODE 8: CUSTOMERS & ADMINISTRATORS
   if (mode === 'customers') {
+    const handleAddQuickAdmin = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newAdminEmail.trim()) return;
+      addAdminByEmail(newAdminEmail.trim(), newAdminName.trim() || undefined);
+      setNewAdminName('');
+      setNewAdminEmail('');
+    };
+
     return (
       <div className="space-y-6">
+        {/* Authorized Administrators & Team Access Control Card */}
+        <div className="bg-white rounded-2xl border border-neutral-200 p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="font-ui text-xs font-bold uppercase tracking-widest text-[#1150EF] inline-flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Admin Team & Role Access Control
+              </span>
+              <h3 className="font-display text-xl text-[#0D0D0D] mt-0.5">
+                Authorized Website Administrators ({authorizedAdminEmails.length})
+              </h3>
+              <p className="font-body text-xs text-[#737373] mt-0.5">
+                Add another person by their Google email so they receive full Administrator privileges when they sign in.
+              </p>
+            </div>
+          </div>
+
+          <form
+            onSubmit={handleAddQuickAdmin}
+            className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 pt-1"
+          >
+            <input
+              type="text"
+              placeholder="Full Name (e.g. Jean-Marc Pierre)"
+              value={newAdminName}
+              onChange={(e) => setNewAdminName(e.target.value)}
+              className="sm:col-span-4 h-10 px-3.5 rounded-xl border border-neutral-200 text-xs font-body"
+            />
+            <input
+              type="email"
+              required
+              placeholder="Google Email Address (e.g. colleague@gmail.com)"
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              className="sm:col-span-5 h-10 px-3.5 rounded-xl border border-neutral-200 text-xs font-body"
+            />
+            <button
+              type="submit"
+              className="sm:col-span-3 h-10 px-4 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add as Admin</span>
+            </button>
+          </form>
+
+          <div className="flex flex-wrap gap-2 pt-2">
+            {authorizedAdminEmails.map((email) => {
+              const isPrimary = email.toLowerCase() === 'antoinejay41@gmail.com';
+              return (
+                <div
+                  key={email}
+                  className="px-3 py-1.5 rounded-xl bg-blue-50/80 border border-blue-200 text-xs font-ui flex items-center gap-2"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#1150EF]" />
+                  <span className="font-bold text-[#0D0D0D]">{email}</span>
+                  {isPrimary ? (
+                    <span className="px-1.5 py-0.5 rounded bg-[#1150EF] text-white text-[10px] font-bold uppercase">
+                      Owner Admin
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => removeAdminByEmail(email)}
+                      className="text-rose-600 hover:text-rose-800 font-bold text-[11px] cursor-pointer"
+                      title="Remove admin access"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="bg-white rounded-2xl border border-neutral-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <span className="font-ui text-xs font-bold uppercase tracking-widest text-[#1150EF]">
-              Client Accounts & Preferences
+              Client & Team Accounts
             </span>
             <h2 className="font-display text-2xl text-[#0D0D0D] mt-1">
-              Registered Demo Customers ({customers.length})
+              Registered Users & Administrators ({customers.length})
             </h2>
             <p className="font-body text-xs text-[#737373] mt-0.5">
-              Manage buyer, renter, and event planner profiles, language/currency preferences, and verification status.
+              Manage buyer, renter, owner, and administrator accounts, assign roles, and update preferences.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setIsAddingCustomer(true);
-              setEditingCustomer(null);
-              setCustName('');
-              setCustEmail('');
-              setCustPhone('');
-              setCustBio('');
-            }}
-            className="px-4 py-2.5 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Customer</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddingCustomer(true);
+                setEditingCustomer(null);
+                setCustName('');
+                setCustEmail('');
+                setCustPhone('');
+                setCustRole('admin');
+                setCustBio('Authorized Platform Administrator');
+              }}
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>+ Add New Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddingCustomer(true);
+                setEditingCustomer(null);
+                setCustName('');
+                setCustEmail('');
+                setCustPhone('');
+                setCustRole('customer');
+                setCustBio('');
+              }}
+              className="px-4 py-2.5 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Customer</span>
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {customers.map((cust) => (
-            <div
-              key={cust.id}
-              className="bg-white rounded-2xl border border-neutral-200 p-5 flex flex-col justify-between gap-4"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-[#1150EF]" />
-                    <h3 className="font-display text-lg text-[#0D0D0D]">{cust.name}</h3>
+          {customers.map((cust) => {
+            const isAdminRole =
+              cust.role === 'admin' ||
+              authorizedAdminEmails.includes(cust.email.trim().toLowerCase());
+            return (
+              <div
+                key={cust.id}
+                className="bg-white rounded-2xl border border-neutral-200 p-5 flex flex-col justify-between gap-4"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-[#1150EF]" />
+                      <h3 className="font-display text-lg text-[#0D0D0D]">{cust.name}</h3>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-ui font-bold uppercase ${
+                          isAdminRole
+                            ? 'bg-[#1150EF] text-white'
+                            : 'bg-neutral-100 text-[#161616]'
+                        }`}
+                      >
+                        {isAdminRole ? 'ADMIN' : cust.role}
+                      </span>
+                    </div>
+                    <span className="text-xs font-ui text-[#737373]">
+                      {cust.preferredLanguage.toUpperCase()} · {cust.preferredCurrency}
+                    </span>
                   </div>
-                  <span className="text-xs font-ui text-[#737373]">
-                    {cust.preferredLanguage.toUpperCase()} · {cust.preferredCurrency}
-                  </span>
+                  <p className="text-xs font-ui text-[#161616] mt-1">
+                    {cust.email} · {cust.phone}
+                  </p>
+                  {cust.bio && (
+                    <p className="mt-2 font-body text-xs text-[#737373]">{cust.bio}</p>
+                  )}
                 </div>
-                <p className="text-xs font-ui text-[#161616] mt-1">
-                  {cust.email} · {cust.phone}
-                </p>
-                {cust.bio && (
-                  <p className="mt-2 font-body text-xs text-[#737373]">{cust.bio}</p>
-                )}
-              </div>
 
-              <div className="pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => updateCustomer(cust.id, { verified: !cust.verified })}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-ui font-semibold cursor-pointer ${
-                    cust.verified
-                      ? 'bg-emerald-50 text-emerald-800'
-                      : 'bg-neutral-100 text-[#161616]'
-                  }`}
-                >
-                  {cust.verified ? 'Verified Client' : 'Unverified'}
-                </button>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingCustomer(cust);
-                      setIsAddingCustomer(false);
-                      setCustName(cust.name);
-                      setCustEmail(cust.email);
-                      setCustPhone(cust.phone);
-                      setCustBio(cust.bio || '');
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-xs font-ui font-semibold cursor-pointer"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteCustomer(cust.id)}
-                    className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div className="pt-3 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => updateCustomer(cust.id, { verified: !cust.verified })}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-ui font-semibold cursor-pointer ${
+                        cust.verified
+                          ? 'bg-emerald-50 text-emerald-800'
+                          : 'bg-neutral-100 text-[#161616]'
+                      }`}
+                    >
+                      {cust.verified ? 'Verified' : 'Unverified'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateCustomer(cust.id, {
+                          role: isAdminRole ? 'customer' : 'admin'
+                        })
+                      }
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-ui font-semibold cursor-pointer inline-flex items-center gap-1 ${
+                        isAdminRole
+                          ? 'bg-blue-50 text-[#1150EF]'
+                          : 'bg-neutral-100 hover:bg-neutral-200 text-[#161616]'
+                      }`}
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>{isAdminRole ? 'Admin Role Active' : 'Make Admin'}</span>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingCustomer(cust);
+                        setIsAddingCustomer(false);
+                        setCustName(cust.name);
+                        setCustEmail(cust.email);
+                        setCustPhone(cust.phone);
+                        setCustRole(isAdminRole ? 'admin' : cust.role);
+                        setCustBio(cust.bio || '');
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-xs font-ui font-semibold cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteCustomer(cust.id)}
+                      className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {(isAddingCustomer || editingCustomer) && (
@@ -448,38 +592,71 @@ export const AdminDirectoryAndCrmSection: React.FC<
               className="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-neutral-200 space-y-4"
             >
               <h3 className="font-display text-xl text-[#0D0D0D]">
-                {isAddingCustomer ? 'Add Customer Record' : 'Edit Customer Profile'}
+                {isAddingCustomer
+                  ? custRole === 'admin'
+                    ? 'Add New Administrator'
+                    : 'Add User / Customer Record'
+                  : 'Edit User / Admin Profile'}
               </h3>
-              <input
-                type="text"
-                required
-                placeholder="Full Name"
-                value={custName}
-                onChange={(e) => setCustName(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm"
-              />
-              <input
-                type="email"
-                required
-                placeholder="Email"
-                value={custEmail}
-                onChange={(e) => setCustEmail(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm"
-              />
-              <input
-                type="text"
-                placeholder="Phone"
-                value={custPhone}
-                onChange={(e) => setCustPhone(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm"
-              />
-              <textarea
-                rows={3}
-                placeholder="Client notes / bio"
-                value={custBio}
-                onChange={(e) => setCustBio(e.target.value)}
-                className="w-full p-3 rounded-xl border border-neutral-200 text-sm"
-              />
+              <div>
+                <label className="block font-ui text-xs font-semibold mb-1">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Full Name"
+                  value={custName}
+                  onChange={(e) => setCustName(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block font-ui text-xs font-semibold mb-1">
+                  Email Address (Google Email for Admin Access)
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="Email"
+                  value={custEmail}
+                  onChange={(e) => setCustEmail(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-ui text-xs font-semibold mb-1">Phone</label>
+                  <input
+                    type="text"
+                    placeholder="Phone"
+                    value={custPhone}
+                    onChange={(e) => setCustPhone(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block font-ui text-xs font-semibold mb-1">Account Role</label>
+                  <select
+                    value={custRole}
+                    onChange={(e) => setCustRole(e.target.value as UserRole)}
+                    className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-sm font-ui font-semibold bg-white"
+                  >
+                    <option value="customer">Customer (Buyer/Renter)</option>
+                    <option value="owner">Property Owner</option>
+                    <option value="agent">Licensed Agent</option>
+                    <option value="admin">Admin (Full CMS Access)</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block font-ui text-xs font-semibold mb-1">Notes / Bio</label>
+                <textarea
+                  rows={3}
+                  placeholder="Client or administrator notes"
+                  value={custBio}
+                  onChange={(e) => setCustBio(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-neutral-200 text-sm"
+                />
+              </div>
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
@@ -495,7 +672,7 @@ export const AdminDirectoryAndCrmSection: React.FC<
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-[#1150EF] text-white text-xs font-ui font-bold cursor-pointer"
                 >
-                  Save Customer
+                  Save Account
                 </button>
               </div>
             </form>

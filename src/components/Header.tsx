@@ -6,6 +6,7 @@ import {
   Globe,
   Heart,
   Layers,
+  LogOut,
   Menu,
   ShieldCheck,
   UserCheck,
@@ -24,6 +25,8 @@ export const Header: React.FC = () => {
     setCurrency,
     activeRole,
     setActiveRole,
+    firebaseUser,
+    logoutAdminSession,
     favorites,
     compareIds,
     setIsCompareOpen,
@@ -499,12 +502,50 @@ export const Header: React.FC = () => {
                     {pendingApprovalsCount} {t.nav.pendingShort}
                   </span>
                 </button>
+
+                {(activeRole === 'admin' || firebaseUser) && (
+                  <div className="mt-1.5 pt-1.5 border-t border-neutral-100">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setRoleMenuOpen(false);
+                        await logoutAdminSession();
+                        navigate('/');
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-ui font-bold text-rose-600 hover:bg-rose-50 text-left cursor-pointer transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <LogOut className="w-3.5 h-3.5" />
+                        Log Out of Admin / Sign Out
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider">Exit</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Desktop Auth Actions: Register */}
+          {/* Desktop Auth Actions: Register or Log Out when in Admin */}
           <div className="hidden lg:flex items-center gap-2 shrink-0">
+            {(activeRole === 'admin' || firebaseUser) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  await logoutAdminSession();
+                  navigate('/');
+                }}
+                title="Log out of Admin session and return to public website"
+                className={`min-h-[40px] px-3.5 py-2 ${branding.buttonRadius || 'rounded-lg'} font-ui text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-all inline-flex items-center gap-1.5 ${
+                  isHomeHero
+                    ? 'bg-rose-600 text-white hover:bg-rose-500'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                }`}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setAuthModalMode('register')}
@@ -600,6 +641,20 @@ export const Header: React.FC = () => {
 
             {/* Auth Actions */}
             <div className="border-t border-neutral-200 pt-5 flex flex-col sm:flex-row gap-2.5">
+              {(activeRole === 'admin' || firebaseUser) && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setMobileMenuOpen(false);
+                    await logoutAdminSession();
+                    navigate('/');
+                  }}
+                  className="min-h-[46px] flex-1 px-4 py-3 rounded-xl bg-rose-600 text-white font-ui text-sm font-semibold hover:bg-rose-700 inline-flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Log Out & Exit Admin</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

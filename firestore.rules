@@ -1,0 +1,423 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. GLOBAL SAFETY NET: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. CORE SECURITY PRIMITIVES
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedEmail() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedEmail() && request.auth.token.email == 'antoinejay41@gmail.com';
+    }
+
+    function isAuthorizedAdminEmail() {
+      return isBootstrappedAdmin() || (
+        isVerifiedEmail() &&
+        exists(/databases/$(database)/documents/cms_config/published) &&
+        'authorizedAdminEmails' in get(/databases/$(database)/documents/cms_config/published).data.websiteSettings &&
+        get(/databases/$(database)/documents/cms_config/published).data.websiteSettings.authorizedAdminEmails is list &&
+        request.auth.token.email in get(/databases/$(database)/documents/cms_config/published).data.websiteSettings.authorizedAdminEmails
+      );
+    }
+
+    function isAdmin() {
+      return isAuthorizedAdminEmail() || (
+        isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. ENTITY VALIDATION BLUEPRINTS
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'email', 'createdAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.createdAt == request.time;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+        'id', 'name', 'email', 'role',
+        'preferredLanguage', 'preferredCurrency', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'name', 'email', 'phone', 'role',
+        'preferredLanguage', 'preferredCurrency', 'favorites',
+        'joinedDate', 'bio', 'verified', 'updatedAt'
+      ])
+      && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+      && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+      && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+      && (!('phone' in data) || (data.phone is string && data.phone.size() <= 40))
+      && data.role in ['customer', 'owner', 'agent', 'admin']
+      && data.preferredLanguage in ['en', 'fr', 'es', 'ht']
+      && data.preferredCurrency in ['USD', 'DOP', 'HTG']
+      && (!('favorites' in data) || (
+        data.favorites is list && data.favorites.size() <= 100 &&
+        (data.favorites.size() == 0 || (data.favorites[0] is string && data.favorites[0].size() <= 128))
+      ))
+      && (!('joinedDate' in data) || (data.joinedDate is string && data.joinedDate.size() <= 32))
+      && (!('bio' in data) || (data.bio is string && data.bio.size() <= 1000))
+      && (!('verified' in data) || (data.verified is bool))
+      && data.updatedAt == request.time;
+    }
+
+    function isValidPropertyListing(data) {
+      return data.keys().hasAll([
+        'id', 'referenceCode', 'title', 'category', 'listingType',
+        'priceUSD', 'location', 'specs', 'description',
+        'highlights', 'amenities', 'images', 'ownerId',
+        'approvalStatus', 'featured', 'dateListed',
+        'viewsCount', 'inquiriesCount', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'referenceCode', 'title', 'subtitle', 'category', 'listingType',
+        'priceUSD', 'priceUnit', 'rentalDuration', 'location', 'specs',
+        'description', 'highlights', 'amenities', 'images', 'videoUrl',
+        'virtualTour360Url', 'ownerId', 'agentId', 'approvalStatus',
+        'availabilityStatus', 'adminNotes', 'featured', 'featuredOrder',
+        'dateListed', 'viewsCount', 'inquiriesCount', 'updatedAt'
+      ])
+      && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+      && data.referenceCode is string && data.referenceCode.size() >= 3 && data.referenceCode.size() <= 32
+      && data.title is string && data.title.size() >= 3 && data.title.size() <= 160
+      && (!('subtitle' in data) || (data.subtitle is string && data.subtitle.size() <= 240))
+      && data.category in ['house', 'apartment', 'villa', 'land', 'commercial', 'event_space']
+      && data.listingType in ['sale', 'rent', 'land', 'event']
+      && data.priceUSD is number && data.priceUSD >= 0 && data.priceUSD <= 500000000
+      && (!('priceUnit' in data) || data.priceUnit in ['total', 'per_month', 'per_night', 'per_day', 'per_sqm'])
+      && (!('rentalDuration' in data) || data.rentalDuration in ['short_term', 'monthly', 'long_term'])
+      && data.location is map
+      && data.location.country is string && data.location.country.size() >= 2 && data.location.country.size() <= 80
+      && data.location.city is string && data.location.city.size() >= 2 && data.location.city.size() <= 80
+      && data.location.neighborhood is string && data.location.neighborhood.size() <= 120
+      && data.location.address is string && data.location.address.size() <= 200
+      && data.specs is map
+      && data.specs.areaSqm is number && data.specs.areaSqm >= 1 && data.specs.areaSqm <= 50000000
+      && data.description is string && data.description.size() >= 5 && data.description.size() <= 5000
+      && data.highlights is list && data.highlights.size() <= 15
+      && (data.highlights.size() == 0 || (data.highlights[0] is string && data.highlights[0].size() <= 200))
+      && data.amenities is list && data.amenities.size() <= 30
+      && (data.amenities.size() == 0 || (data.amenities[0] is string && data.amenities[0].size() <= 80))
+      && data.images is list && data.images.size() >= 1 && data.images.size() <= 20
+      && data.images[0] is string && data.images[0].size() <= 250000
+      && (!('videoUrl' in data) || (data.videoUrl is string && data.videoUrl.size() <= 1000))
+      && (!('virtualTour360Url' in data) || (data.virtualTour360Url is string && data.virtualTour360Url.size() <= 1000))
+      && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+      && (!('agentId' in data) || (data.agentId is string && data.agentId.size() <= 128))
+      && data.approvalStatus in ['pending', 'approved', 'rejected', 'changes_requested']
+      && (!('availabilityStatus' in data) || data.availabilityStatus in ['available', 'reserved', 'sold', 'rented', 'hidden'])
+      && (!('adminNotes' in data) || (data.adminNotes is string && data.adminNotes.size() <= 1000))
+      && data.featured is bool
+      && (!('featuredOrder' in data) || data.featuredOrder is number)
+      && data.dateListed is string && data.dateListed.size() <= 32
+      && data.viewsCount is number && data.viewsCount >= 0
+      && data.inquiriesCount is number && data.inquiriesCount >= 0
+      && data.updatedAt == request.time;
+    }
+
+    function isValidPropertyInquiry(data) {
+      return data.keys().hasAll([
+        'id', 'propertyId', 'propertyReference', 'propertyTitle',
+        'customerId', 'customerName', 'customerEmail', 'ownerId',
+        'subject', 'initialMessage', 'status', 'createdAt', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'propertyId', 'propertyReference', 'propertyTitle',
+        'customerId', 'customerName', 'customerEmail', 'customerPhone',
+        'ownerId', 'subject', 'initialMessage', 'status', 'createdAt', 'updatedAt'
+      ])
+      && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+      && data.propertyId is string && data.propertyId.size() >= 1 && data.propertyId.size() <= 128
+      && data.propertyReference is string && data.propertyReference.size() <= 32
+      && data.propertyTitle is string && data.propertyTitle.size() <= 160
+      && data.customerId is string && data.customerId.size() >= 1 && data.customerId.size() <= 128
+      && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120
+      && data.customerEmail is string && data.customerEmail.size() >= 3 && data.customerEmail.size() <= 254
+      && (!('customerPhone' in data) || (data.customerPhone is string && data.customerPhone.size() <= 40))
+      && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+      && data.subject is string && data.subject.size() <= 200
+      && data.initialMessage is string && data.initialMessage.size() >= 1 && data.initialMessage.size() <= 2000
+      && data.status in ['new', 'answered', 'archived']
+      && data.createdAt is string && data.createdAt.size() <= 40
+      && data.updatedAt is string && data.updatedAt.size() <= 40;
+    }
+
+    function isValidInquiryMessage(data) {
+      return data.keys().hasAll([
+        'id', 'inquiryId', 'customerId', 'ownerId',
+        'senderId', 'senderName', 'senderRole', 'content', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'inquiryId', 'customerId', 'ownerId',
+        'senderId', 'senderName', 'senderRole', 'content', 'createdAt'
+      ])
+      && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+      && data.inquiryId is string && data.inquiryId.size() >= 1 && data.inquiryId.size() <= 128
+      && data.customerId is string && data.customerId.size() >= 1 && data.customerId.size() <= 128
+      && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+      && data.senderId is string && data.senderId.size() >= 1 && data.senderId.size() <= 128
+      && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 120
+      && data.senderRole in ['customer', 'owner', 'agent', 'admin']
+      && data.content is string && data.content.size() >= 1 && data.content.size() <= 2000
+      && data.createdAt is string && data.createdAt.size() <= 40;
+    }
+
+    function isValidViewingRequest(data) {
+      return data.keys().hasAll([
+        'id', 'propertyId', 'propertyReference', 'propertyTitle',
+        'customerId', 'customerName', 'customerEmail', 'customerPhone',
+        'ownerId', 'preferredDate', 'preferredTime', 'visitType',
+        'status', 'createdAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'propertyId', 'propertyReference', 'propertyTitle',
+        'customerId', 'customerName', 'customerEmail', 'customerPhone',
+        'ownerId', 'preferredDate', 'preferredTime', 'visitType',
+        'guestCount', 'notes', 'status', 'ownerResponseNote', 'createdAt'
+      ])
+      && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+      && data.propertyId is string && data.propertyId.size() >= 1 && data.propertyId.size() <= 128
+      && data.propertyReference is string && data.propertyReference.size() <= 32
+      && data.propertyTitle is string && data.propertyTitle.size() <= 160
+      && data.customerId is string && data.customerId.size() >= 1 && data.customerId.size() <= 128
+      && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120
+      && data.customerEmail is string && data.customerEmail.size() >= 3 && data.customerEmail.size() <= 254
+      && data.customerPhone is string && data.customerPhone.size() <= 40
+      && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128
+      && data.preferredDate is string && data.preferredDate.size() <= 32
+      && data.preferredTime is string && data.preferredTime.size() <= 32
+      && data.visitType in ['in_person', 'video_call', 'event_inspection']
+      && (!('guestCount' in data) || (data.guestCount is number && data.guestCount >= 0 && data.guestCount <= 20000))
+      && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+      && data.status in ['pending', 'confirmed', 'rescheduled', 'declined']
+      && (!('ownerResponseNote' in data) || (data.ownerResponseNote is string && data.ownerResponseNote.size() <= 1000))
+      && data.createdAt is string && data.createdAt.size() <= 40;
+    }
+
+    function isValidCmsConfigState(data) {
+      return data.keys().hasAll([
+        'id', 'websiteContent', 'branding',
+        'navigationConfig', 'websiteSettings',
+        'customTranslations', 'updatedBy', 'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'id', 'websiteContent', 'branding',
+        'navigationConfig', 'websiteSettings',
+        'customTranslations', 'updatedBy', 'updatedAt'
+      ])
+      && data.id in ['published', 'draft']
+      && data.websiteContent is map
+      && data.branding is map
+      && data.navigationConfig is map
+      && data.websiteSettings is map
+      && data.customTranslations is map
+      && data.updatedBy is string && data.updatedBy.size() >= 1 && data.updatedBy.size() <= 128
+      && data.updatedAt == request.time;
+    }
+
+    // 4. COLLECTION MATCH BLOCKS
+
+    // ADMINS COLLECTION
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list: if isBootstrappedAdmin();
+      allow create: if isSignedIn() && isValidId(adminId) && isValidAdminRecord(incoming()) && incoming().uid == adminId && (request.auth.uid == adminId || isAdmin());
+      allow update: if isSignedIn() && isValidId(adminId) && isValidAdminRecord(incoming()) && incoming().uid == existing().uid && (request.auth.uid == adminId || isAdmin());
+      allow delete: if isAdmin() && isValidId(adminId);
+    }
+
+    // USERS COLLECTION (PII ISOLATED)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isBootstrappedAdmin();
+      allow create: if isSignedIn() && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().id == userId
+        && (
+          isAdmin() || (
+            request.auth.uid == userId
+            && incoming().role in ['customer', 'owner', 'agent', 'admin']
+          )
+        );
+      allow update: if isSignedIn() && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().id == existing().id
+        && (
+          isAdmin() || (
+            request.auth.uid == userId
+            && incoming().role in ['customer', 'owner', 'agent', 'admin']
+          )
+        );
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // PROPERTIES COLLECTION
+    match /properties/{propertyId} {
+      allow get: if isValidId(propertyId) && (
+        existing().approvalStatus == 'approved' ||
+        (isSignedIn() && existing().ownerId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if (
+        existing().approvalStatus == 'approved' ||
+        isSignedIn()
+      );
+      allow create: if isSignedIn() && isValidId(propertyId)
+        && isValidPropertyListing(incoming())
+        && incoming().id == propertyId
+        && (
+          isAdmin() || (
+            incoming().ownerId == request.auth.uid
+            && incoming().approvalStatus == 'pending'
+            && incoming().featured == false
+          )
+        );
+      allow update: if isSignedIn() && isValidId(propertyId)
+        && isValidPropertyListing(incoming())
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && (
+          isAdmin() || (
+            existing().ownerId == request.auth.uid
+            && incoming().approvalStatus == 'pending'
+            && incoming().featured == existing().featured
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'subtitle', 'priceUSD', 'priceUnit', 'rentalDuration',
+              'location', 'specs', 'description', 'highlights', 'amenities',
+              'images', 'videoUrl', 'availabilityStatus', 'approvalStatus', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isSignedIn() && isValidId(propertyId) && (
+        isAdmin() || existing().ownerId == request.auth.uid
+      );
+    }
+
+    // INQUIRIES COLLECTION (PII RESTRICTED TO CUSTOMER, OWNER, OR ADMIN)
+    match /inquiries/{inquiryId} {
+      allow get: if isSignedIn() && isValidId(inquiryId) && (
+        existing().customerId == request.auth.uid ||
+        existing().ownerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        existing().customerId == request.auth.uid ||
+        existing().ownerId == request.auth.uid ||
+        isBootstrappedAdmin()
+      );
+      allow create: if isSignedIn() && isValidId(inquiryId)
+        && isValidPropertyInquiry(incoming())
+        && incoming().id == inquiryId
+        && incoming().customerId == request.auth.uid
+        && incoming().status == 'new'
+        && exists(/databases/$(database)/documents/properties/$(incoming().propertyId));
+      allow update: if isSignedIn() && isValidId(inquiryId)
+        && isValidPropertyInquiry(incoming())
+        && incoming().id == existing().id
+        && incoming().propertyId == existing().propertyId
+        && incoming().customerId == existing().customerId
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && (
+          isAdmin() || (
+            (existing().ownerId == request.auth.uid || existing().customerId == request.auth.uid)
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(inquiryId);
+
+      // INQUIRY MESSAGES SUBCOLLECTION (Master Gate on create, resource.data on list)
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(inquiryId) && isValidId(messageId) && (
+          existing().customerId == request.auth.uid ||
+          existing().ownerId == request.auth.uid ||
+          isAdmin()
+        );
+        allow list: if isSignedIn() && (
+          existing().customerId == request.auth.uid ||
+          existing().ownerId == request.auth.uid ||
+          isBootstrappedAdmin()
+        );
+        allow create: if isSignedIn() && isValidId(inquiryId) && isValidId(messageId)
+          && isValidInquiryMessage(incoming())
+          && incoming().id == messageId
+          && incoming().inquiryId == inquiryId
+          && incoming().senderId == request.auth.uid
+          && get(/databases/$(database)/documents/inquiries/$(inquiryId)).data.customerId == incoming().customerId
+          && get(/databases/$(database)/documents/inquiries/$(inquiryId)).data.ownerId == incoming().ownerId
+          && (
+            incoming().customerId == request.auth.uid ||
+            incoming().ownerId == request.auth.uid ||
+            isAdmin()
+          );
+        allow update, delete: if isAdmin() && isValidId(inquiryId) && isValidId(messageId);
+      }
+    }
+
+    // VIEWING REQUESTS COLLECTION
+    match /viewing_requests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) && (
+        existing().customerId == request.auth.uid ||
+        existing().ownerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        existing().customerId == request.auth.uid ||
+        existing().ownerId == request.auth.uid ||
+        isBootstrappedAdmin()
+      );
+      allow create: if isSignedIn() && isValidId(requestId)
+        && isValidViewingRequest(incoming())
+        && incoming().id == requestId
+        && incoming().customerId == request.auth.uid
+        && incoming().status == 'pending'
+        && exists(/databases/$(database)/documents/properties/$(incoming().propertyId));
+      allow update: if isSignedIn() && isValidId(requestId)
+        && isValidViewingRequest(incoming())
+        && incoming().id == existing().id
+        && incoming().propertyId == existing().propertyId
+        && incoming().customerId == existing().customerId
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && (
+          isAdmin() || (
+            existing().ownerId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'ownerResponseNote'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(requestId);
+    }
+
+    // CMS CONFIGURATION COLLECTION ('published' & 'draft')
+    match /cms_config/{configId} {
+      allow get: if isValidId(configId) && (configId == 'published' || isAdmin());
+      allow list: if isBootstrappedAdmin();
+      allow create: if isAdmin() && isValidId(configId) && isValidCmsConfigState(incoming()) && incoming().id == configId;
+      allow update: if isAdmin() && isValidId(configId) && isValidCmsConfigState(incoming()) && incoming().id == existing().id;
+      allow delete: if isAdmin() && isValidId(configId);
+    }
+  }
+}

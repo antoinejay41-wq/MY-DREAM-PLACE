@@ -1725,7 +1725,8 @@ export const INITIAL_WEBSITE_SETTINGS = {
   requireAdminApprovalForNewListings: true,
   seoDefaultTitle: 'MY DREAM PLACE — Real Estate | Luxury Residences, Land & Event Spaces',
   seoDefaultDescription:
-    "Find the place you've always dreamed of. Discover architectural villas, penthouses, titled land parcels, and private event spaces."
+    "Find the place you've always dreamed of. Discover architectural villas, penthouses, titled land parcels, and private event spaces.",
+  authorizedAdminEmails: ['antoinejay41@gmail.com']
 };
 
 export const INITIAL_CUSTOM_TRANSLATIONS = {

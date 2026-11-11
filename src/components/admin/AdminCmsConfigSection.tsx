@@ -14,9 +14,11 @@ import {
   RotateCcw,
   Save,
   Settings,
+  ShieldCheck,
   Trash2,
   Upload
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useMarketplace } from '../../contexts/MarketplaceContext';
 import { translations } from '../../translations';
 import { CurrencyCode, LanguageCode } from '../../types';
@@ -84,9 +86,14 @@ export const AdminCmsConfigSection: React.FC<AdminCmsConfigSectionProps> = ({
     saveDraftChanges,
     publishDraftChanges,
     uploadMediaFromDevice,
+    authorizedAdminEmails,
+    addAdminByEmail,
+    removeAdminByEmail,
+    logoutAdminSession,
     resetDemoData,
     showToast
   } = useMarketplace();
+  const navigate = useNavigate();
 
   const [selectedEditLang, setSelectedEditLang] = useState<LanguageCode>('fr');
   const [newFooterLabel, setNewFooterLabel] = useState('');
@@ -94,6 +101,8 @@ export const AdminCmsConfigSection: React.FC<AdminCmsConfigSectionProps> = ({
   const [newSocialPlatform, setNewSocialPlatform] = useState('');
   const [newSocialUrl, setNewSocialUrl] = useState('https://');
   const [confirmFactoryReset, setConfirmFactoryReset] = useState(false);
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
 
   // ============================================================================
   // 11. LANGUAGES & MULTILINGUAL CONTENT EDITOR
@@ -1334,6 +1343,96 @@ export const AdminCmsConfigSection: React.FC<AdminCmsConfigSectionProps> = ({
               className="w-full h-10 px-3 rounded-xl border border-neutral-200 text-xs font-body"
             />
           </div>
+        </div>
+      </div>
+
+      {/* Admin Team & Session Controls */}
+      <div className="bg-white rounded-2xl border border-neutral-200 p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span className="font-ui text-xs font-bold uppercase tracking-widest text-[#1150EF] inline-flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Admin Team & Session Controls
+            </span>
+            <h3 className="font-display text-lg text-[#0D0D0D] mt-0.5">
+              Authorized Website Administrators ({authorizedAdminEmails.length})
+            </h3>
+            <p className="font-body text-xs text-[#737373]">
+              Authorize additional administrators by email or log out of your Admin session after publishing changes.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              await logoutAdminSession();
+              navigate('/');
+            }}
+            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-ui text-xs font-bold cursor-pointer shrink-0"
+          >
+            Log Out & Exit Admin
+          </button>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!newAdminEmail.trim()) return;
+            addAdminByEmail(newAdminEmail.trim(), newAdminName.trim() || undefined);
+            setNewAdminName('');
+            setNewAdminEmail('');
+          }}
+          className="grid grid-cols-1 sm:grid-cols-12 gap-2.5"
+        >
+          <input
+            type="text"
+            placeholder="Full Name (optional)"
+            value={newAdminName}
+            onChange={(e) => setNewAdminName(e.target.value)}
+            className="sm:col-span-4 h-10 px-3.5 rounded-xl border border-neutral-200 text-xs font-body"
+          />
+          <input
+            type="email"
+            required
+            placeholder="Google Email Address (e.g. colleague@gmail.com)"
+            value={newAdminEmail}
+            onChange={(e) => setNewAdminEmail(e.target.value)}
+            className="sm:col-span-5 h-10 px-3.5 rounded-xl border border-neutral-200 text-xs font-body"
+          />
+          <button
+            type="submit"
+            className="sm:col-span-3 h-10 px-4 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add as Admin</span>
+          </button>
+        </form>
+
+        <div className="flex flex-wrap gap-2">
+          {authorizedAdminEmails.map((email) => {
+            const isPrimary = email.toLowerCase() === 'antoinejay41@gmail.com';
+            return (
+              <div
+                key={email}
+                className="px-3 py-1.5 rounded-xl bg-blue-50/80 border border-blue-200 text-xs font-ui flex items-center gap-2"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-[#1150EF]" />
+                <span className="font-bold text-[#0D0D0D]">{email}</span>
+                {isPrimary ? (
+                  <span className="px-1.5 py-0.5 rounded bg-[#1150EF] text-white text-[10px] font-bold uppercase">
+                    Owner Admin
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => removeAdminByEmail(email)}
+                    className="text-rose-600 hover:text-rose-800 font-bold text-[11px] cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

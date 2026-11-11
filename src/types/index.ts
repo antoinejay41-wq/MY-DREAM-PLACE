@@ -317,6 +317,7 @@ export interface WebsiteSettings {
   requireAdminApprovalForNewListings: boolean;
   seoDefaultTitle: string;
   seoDefaultDescription: string;
+  authorizedAdminEmails?: string[];
 }
 
 export type CustomTranslations = Record<LanguageCode, Record<string, string>>;

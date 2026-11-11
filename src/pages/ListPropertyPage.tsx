@@ -35,10 +35,13 @@ import {
 } from '../utils/locationUtils';
 
 export const ListPropertyPage: React.FC = () => {
-  const { t, currentUser, submitNewProperty, formatPrice } = useMarketplace();
+  const { t, currentUser, submitNewProperty, formatPrice, uploadMediaFromDevice } =
+    useMarketplace();
 
   const [step, setStep] = useState<number>(1);
   const [submittedProperty, setSubmittedProperty] = useState<Property | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
 
   // Step 1: Category
   const [category, setCategory] = useState<PropertyCategory>('villa');
@@ -243,16 +246,22 @@ export const ListPropertyPage: React.FC = () => {
     }
   };
 
-  const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setImages((prev) => [reader.result as string, ...prev]);
+    setUploadError(null);
+    setIsUploadingImage(true);
+    try {
+      const asset = await uploadMediaFromDevice(file, 'property', 'Owner Listing Wizard');
+      if (asset?.url) {
+        setImages((prev) => [asset.url, ...prev]);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed.');
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = '';
+    }
   };
 
   const handleFinalSubmit = () => {
@@ -912,13 +921,21 @@ export const ListPropertyPage: React.FC = () => {
                 </p>
               </div>
 
+              {uploadError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-ui flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <label className="h-11 px-4 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold inline-flex items-center justify-center gap-2 cursor-pointer shrink-0">
                   <Upload className="w-4 h-4" />
-                  <span>{t.wizard.uploadFileBtn}</span>
+                  <span>{isUploadingImage ? 'Uploading...' : t.wizard.uploadFileBtn}</span>
                   <input
                     type="file"
                     accept="image/*"
+                    disabled={isUploadingImage}
                     onChange={handleImageFileUpload}
                     className="hidden"
                   />

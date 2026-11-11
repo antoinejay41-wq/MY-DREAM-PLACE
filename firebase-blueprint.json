@@ -1,0 +1,523 @@
+{
+  "entities": {
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted administrator marker document for Role-Based Access Control.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user account profile and preferences isolated to the owner or admin.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "role": {
+          "type": "string",
+          "enum": ["customer", "owner", "agent", "admin"]
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "enum": ["en", "fr", "es", "ht"]
+        },
+        "preferredCurrency": {
+          "type": "string",
+          "enum": ["USD", "DOP", "HTG"]
+        },
+        "favorites": {
+          "type": "array",
+          "description": "Bounded list of saved property IDs (max 100)."
+        },
+        "joinedDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "name", "email", "role", "preferredLanguage", "preferredCurrency", "updatedAt"]
+    },
+    "PropertyListing": {
+      "title": "PropertyListing",
+      "description": "Real estate marketplace property listing with location validation and moderation state.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "referenceCode": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 32
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "subtitle": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "category": {
+          "type": "string",
+          "enum": ["house", "apartment", "villa", "land", "commercial", "event_space"]
+        },
+        "listingType": {
+          "type": "string",
+          "enum": ["sale", "rent", "land", "event"]
+        },
+        "priceUSD": {
+          "type": "number"
+        },
+        "priceUnit": {
+          "type": "string",
+          "enum": ["total", "per_month", "per_night", "per_day", "per_sqm"]
+        },
+        "rentalDuration": {
+          "type": "string",
+          "enum": ["short_term", "monthly", "long_term"]
+        },
+        "location": {
+          "type": "object",
+          "description": "Geographic location map containing country, province, city, neighborhood, address, coordinates, and locationAccuracy."
+        },
+        "specs": {
+          "type": "object",
+          "description": "Architectural specifications map containing areaSqm, bedrooms, bathrooms, guestCapacity, etc."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 5000
+        },
+        "highlights": {
+          "type": "array",
+          "description": "Bounded list of property highlights (max 15)."
+        },
+        "amenities": {
+          "type": "array",
+          "description": "Bounded list of property amenities (max 30)."
+        },
+        "images": {
+          "type": "array",
+          "description": "Bounded list of property image URLs (max 20)."
+        },
+        "videoUrl": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "agentId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "approvalStatus": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected", "changes_requested"]
+        },
+        "availabilityStatus": {
+          "type": "string",
+          "enum": ["available", "reserved", "sold", "rented", "hidden"]
+        },
+        "adminNotes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "featured": {
+          "type": "boolean"
+        },
+        "featuredOrder": {
+          "type": "number"
+        },
+        "dateListed": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "viewsCount": {
+          "type": "number"
+        },
+        "inquiriesCount": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "referenceCode",
+        "title",
+        "category",
+        "listingType",
+        "priceUSD",
+        "location",
+        "specs",
+        "description",
+        "highlights",
+        "amenities",
+        "images",
+        "ownerId",
+        "approvalStatus",
+        "featured",
+        "dateListed",
+        "viewsCount",
+        "inquiriesCount",
+        "updatedAt"
+      ]
+    },
+    "PropertyInquiry": {
+      "title": "PropertyInquiry",
+      "description": "Direct customer inquiry thread for a specific property listing.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "propertyReference": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "propertyTitle": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "customerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "customerEmail": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "customerPhone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "subject": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "initialMessage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "status": {
+          "type": "string",
+          "enum": ["new", "answered", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "updatedAt": {
+          "type": "string",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "id",
+        "propertyId",
+        "propertyReference",
+        "propertyTitle",
+        "customerId",
+        "customerName",
+        "customerEmail",
+        "ownerId",
+        "subject",
+        "initialMessage",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "InquiryMessage": {
+      "title": "InquiryMessage",
+      "description": "Message inside a property inquiry conversation subcollection.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "inquiryId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "customerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "senderId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "senderRole": {
+          "type": "string",
+          "enum": ["customer", "owner", "agent", "admin"]
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "id",
+        "inquiryId",
+        "customerId",
+        "ownerId",
+        "senderId",
+        "senderName",
+        "senderRole",
+        "content",
+        "createdAt"
+      ]
+    },
+    "ViewingRequest": {
+      "title": "ViewingRequest",
+      "description": "Scheduled property viewing or event venue tour request.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "propertyId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "propertyReference": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "propertyTitle": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "customerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "customerEmail": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "customerPhone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "preferredDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "preferredTime": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "visitType": {
+          "type": "string",
+          "enum": ["in_person", "video_call", "event_inspection"]
+        },
+        "guestCount": {
+          "type": "number"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "rescheduled", "declined"]
+        },
+        "ownerResponseNote": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "maxLength": 40
+        }
+      },
+      "required": [
+        "id",
+        "propertyId",
+        "propertyReference",
+        "propertyTitle",
+        "customerId",
+        "customerName",
+        "customerEmail",
+        "customerPhone",
+        "ownerId",
+        "preferredDate",
+        "preferredTime",
+        "visitType",
+        "status",
+        "createdAt"
+      ]
+    },
+    "CmsConfigState": {
+      "title": "CmsConfigState",
+      "description": "Published or Draft CMS configuration state for website content, branding, navigation, settings, and translations.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": ["published", "draft"]
+        },
+        "websiteContent": {
+          "type": "object",
+          "description": "Structured homepage and editorial text content."
+        },
+        "branding": {
+          "type": "object",
+          "description": "Centralized brand colors, typography preset, and logo configuration."
+        },
+        "navigationConfig": {
+          "type": "object",
+          "description": "Header and footer navigation items and social links."
+        },
+        "websiteSettings": {
+          "type": "object",
+          "description": "Marketplace operational flags and currency exchange rates."
+        },
+        "customTranslations": {
+          "type": "object",
+          "description": "Admin-defined translation overrides for en, fr, es, ht."
+        },
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "websiteContent",
+        "branding",
+        "navigationConfig",
+        "websiteSettings",
+        "customTranslations",
+        "updatedBy",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": "AdminRecord",
+      "description": "Trusted administrator lookup collection."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user account documents containing PII and user preferences."
+    },
+    "/properties/{propertyId}": {
+      "schema": "PropertyListing",
+      "description": "Marketplace property listings with moderation status and geographic coordinates."
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": "PropertyInquiry",
+      "description": "Direct buyer/renter inquiries scoped to customerId, ownerId, and admin."
+    },
+    "/inquiries/{inquiryId}/messages/{messageId}": {
+      "schema": "InquiryMessage",
+      "description": "Messages belonging to a specific property inquiry thread."
+    },
+    "/viewing_requests/{requestId}": {
+      "schema": "ViewingRequest",
+      "description": "Scheduled property viewing and event venue tour requests."
+    },
+    "/cms_config/{configId}": {
+      "schema": "CmsConfigState",
+      "description": "Centralized CMS configuration documents ('published' and 'draft')."
+    }
+  }
+}

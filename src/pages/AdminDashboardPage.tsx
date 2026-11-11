@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
   BarChart3,
@@ -13,6 +13,7 @@ import {
   Globe,
   Image as ImageIcon,
   LayoutDashboard,
+  LogOut,
   MessageSquare,
   Palette,
   RotateCcw,
@@ -81,11 +82,22 @@ export const AdminDashboardPage: React.FC = () => {
     lastPublishedAt,
     resetDemoData,
     reviewPropertyApproval,
-    formatPrice
+    formatPrice,
+    firebaseUser,
+    isVerifiedAdmin,
+    signInWithGoogle,
+    logoutAdminSession,
+    syncSeedCatalogToFirestore
   } = useMarketplace();
 
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<AdminSidebarSectionId>('overview');
   const [statusToast, setStatusToast] = useState<string | null>(null);
+
+  const handleAdminLogout = async () => {
+    await logoutAdminSession();
+    navigate('/');
+  };
 
   const triggerToast = (message: string) => {
     setStatusToast(message);
@@ -237,12 +249,19 @@ export const AdminDashboardPage: React.FC = () => {
       {/* Top Admin CMS Command Bar */}
       <div className="bg-[#0D0D0D] text-white border-b border-white/10 sticky top-20 z-30">
         <div className="mdp-container py-3.5 flex flex-wrap items-center justify-between gap-4">
-          {/* Left: Brand + DEMO MODE badge + State Indicator */}
+          {/* Left: Brand + Firebase / CMS State Indicator */}
           <div className="flex flex-wrap items-center gap-3">
-            <span className="px-2.5 py-1 rounded-md bg-amber-400 text-[#0D0D0D] font-ui text-[11px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>DEMO MODE — Local Browser CMS</span>
-            </span>
+            {firebaseUser && isVerifiedAdmin ? (
+              <span className="px-2.5 py-1 rounded-md bg-emerald-400 text-[#0D0D0D] font-ui text-[11px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>FIREBASE LIVE — Verified Admin ({firebaseUser.email})</span>
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-md bg-amber-400 text-[#0D0D0D] font-ui text-[11px] font-extrabold uppercase tracking-wider inline-flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>DEMO MODE — Sign In with Google for Firestore Admin Writes</span>
+              </span>
+            )}
 
             {hasUnsavedDraftChanges ? (
               <span className="px-2.5 py-1 rounded-md bg-amber-500/20 border border-amber-400/40 text-amber-300 font-ui text-xs font-semibold inline-flex items-center gap-1.5">
@@ -262,8 +281,35 @@ export const AdminDashboardPage: React.FC = () => {
             </span>
           </div>
 
-          {/* Right: Draft / Preview / Publish / Restore Workflow Controls */}
+          {/* Right: Draft / Preview / Publish / Restore / Firebase Sync Workflow Controls */}
           <div className="flex flex-wrap items-center gap-2">
+            {!firebaseUser ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  await signInWithGoogle();
+                  triggerToast('Google authentication flow completed.');
+                }}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                title="Sign in with Google to write directly to Cloud Firestore"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Admin Google Sign-In</span>
+              </button>
+            ) : isVerifiedAdmin ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  await syncSeedCatalogToFirestore();
+                  triggerToast('Synchronized catalog and CMS state to Cloud Firestore.');
+                }}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                title="Seed or synchronize all current properties and CMS config to Cloud Firestore"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                <span>Sync Catalog to Firestore</span>
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={handleSaveDraft}
@@ -333,6 +379,16 @@ export const AdminDashboardPage: React.FC = () => {
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Restore Previous Version</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAdminLogout}
+              className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-sm transition-colors"
+              title="Log out of Admin mode and return to the public website"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out & Exit Admin</span>
             </button>
           </div>
         </div>
@@ -426,6 +482,14 @@ export const AdminDashboardPage: React.FC = () => {
                 <Eye className="w-3.5 h-3.5 text-[#1150EF]" />
                 <span>Open Public Website</span>
               </Link>
+              <button
+                type="button"
+                onClick={handleAdminLogout}
+                className="w-full py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-ui text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out & Exit Admin</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
