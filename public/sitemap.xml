@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+>
+  <!-- ===================================================================== -->
+  <!-- 1. CORE PUBLIC MARKETPLACE PAGES & SECTIONS                           -->
+  <!-- ===================================================================== -->
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/buy</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/rent</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/land</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/events</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/explore</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/agents</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/list-property</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- ===================================================================== -->
+  <!-- 2. APPROVED PROPERTY, LAND & EVENT VENUE LISTINGS                     -->
+  <!-- ===================================================================== -->
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-101</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:title>Villa Sabrina Horizon Pavilion — Cap Cana, Dominican Republic</image:title>
+      <image:loc>https://cdn.sceneai.art/Bg%20images/c789ac4d-f2c8-463a-93f6-1f8c6fa09f9a.png</image:loc>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-102</loc>
+    <lastmod>2026-10-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:title>The Azure Courtyard Residence — Pétion-Ville, Haiti</image:title>
+      <image:loc>https://cdn.sceneai.art/Bg%20images/1111e026-508f-432b-810e-707f82f0be4a.png</image:loc>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-103</loc>
+    <lastmod>2026-10-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:title>Palms &amp; Glass Coastal Sanctuary — Las Terrenas, Dominican Republic</image:title>
+      <image:loc>https://cdn.sceneai.art/Bg%20images/46670296-6049-4577-b46c-c05c4420e42f.png</image:loc>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-104</loc>
+    <lastmod>2026-10-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-105</loc>
+    <lastmod>2026-10-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-106</loc>
+    <lastmod>2026-10-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-107</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-108</loc>
+    <lastmod>2026-10-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-109</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-110</loc>
+    <lastmod>2026-10-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-111</loc>
+    <lastmod>2026-10-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-112</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-113</loc>
+    <lastmod>2026-09-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-114</loc>
+    <lastmod>2026-10-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-115</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-116</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-117</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/property/prop-118</loc>
+    <lastmod>2026-10-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>

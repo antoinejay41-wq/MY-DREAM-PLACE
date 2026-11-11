@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /buy
+Allow: /rent
+Allow: /land
+Allow: /events
+Allow: /explore
+Allow: /agents
+Allow: /list-property
+Allow: /property/
+Disallow: /admin
+Disallow: /dashboard/
+
+Sitemap: https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app/sitemap.xml

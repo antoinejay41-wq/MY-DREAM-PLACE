@@ -1436,6 +1436,133 @@ export const AdminCmsConfigSection: React.FC<AdminCmsConfigSectionProps> = ({
         </div>
       </div>
 
+      {/* Google Search Console & XML Sitemap Generator */}
+      {(() => {
+        const originUrl =
+          typeof window !== 'undefined'
+            ? window.location.origin
+            : 'https://ais-pre-ztj7hkr7xgomy3c62xzx6t-327194026657.us-east1.run.app';
+        const sitemapUrl = `${originUrl}/sitemap.xml`;
+        const todayIso = new Date().toISOString().split('T')[0];
+        const approvedProps = properties.filter((p) => p.approvalStatus === 'approved');
+
+        const corePages = [
+          { path: '/', priority: '1.0', changefreq: 'daily' },
+          { path: '/buy', priority: '0.9', changefreq: 'daily' },
+          { path: '/rent', priority: '0.9', changefreq: 'daily' },
+          { path: '/land', priority: '0.9', changefreq: 'weekly' },
+          { path: '/events', priority: '0.9', changefreq: 'weekly' },
+          { path: '/explore', priority: '0.8', changefreq: 'daily' },
+          { path: '/agents', priority: '0.8', changefreq: 'weekly' },
+          { path: '/list-property', priority: '0.8', changefreq: 'monthly' }
+        ];
+
+        const buildLiveSitemapXml = () => {
+          const coreXml = corePages
+            .map(
+              (pg) => `  <url>
+    <loc>${originUrl}${pg.path}</loc>
+    <lastmod>${todayIso}</lastmod>
+    <changefreq>${pg.changefreq}</changefreq>
+    <priority>${pg.priority}</priority>
+  </url>`
+            )
+            .join('\n');
+
+          const propsXml = approvedProps
+            .map(
+              (prop) => `  <url>
+    <loc>${originUrl}/property/${prop.id}</loc>
+    <lastmod>${prop.dateListed || todayIso}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${prop.featured ? '0.8' : '0.7'}</priority>
+  </url>`
+            )
+            .join('\n');
+
+          return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${coreXml}
+${propsXml}
+</urlset>`;
+        };
+
+        const handleDownloadSitemapXml = () => {
+          const xml = buildLiveSitemapXml();
+          const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'sitemap.xml';
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast('Downloaded complete sitemap.xml for Google Search Console');
+        };
+
+        const handleCopySitemapUrl = () => {
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(sitemapUrl).catch(() => {});
+          }
+          showToast(`Copied Sitemap URL: ${sitemapUrl}`);
+        };
+
+        return (
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="font-ui text-xs font-bold uppercase tracking-widest text-[#1150EF] inline-flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5" />
+                  Google Search Console & SEO Sitemap
+                </span>
+                <h3 className="font-display text-lg text-[#0D0D0D] mt-0.5">
+                  XML Sitemap ({corePages.length + approvedProps.length} Indexed URLs)
+                </h3>
+                <p className="font-body text-xs text-[#737373]">
+                  Submit your live Sitemap URL directly to Google Search Console or download an updated XML file including all {approvedProps.length} approved property listings.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <a
+                  href="/sitemap.xml"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-[#0D0D0D] font-ui text-xs font-semibold inline-flex items-center gap-1.5"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Open /sitemap.xml</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleDownloadSitemapXml}
+                  className="px-4 py-2 rounded-xl bg-[#1150EF] hover:bg-[#135AF3] text-white font-ui text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download sitemap.xml</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-neutral-50 border border-neutral-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="block font-ui text-[10px] font-bold uppercase tracking-wider text-[#737373]">
+                  Google Search Console Sitemap URL
+                </span>
+                <code className="block font-mono text-xs text-[#0D0D0D] truncate mt-0.5">
+                  {sitemapUrl}
+                </code>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopySitemapUrl}
+                className="px-3 py-1.5 rounded-lg bg-[#0D0D0D] hover:bg-neutral-800 text-white font-ui text-xs font-semibold shrink-0 cursor-pointer"
+              >
+                Copy Sitemap URL
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Backup & Factory Reset */}
       <div className="bg-white rounded-2xl border border-neutral-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
